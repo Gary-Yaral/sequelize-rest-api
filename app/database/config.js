@@ -6,8 +6,8 @@ const sequelize = new Sequelize('bdseguros','root','',{
 })
 
 sequelize.authenticate()
-.then(() =>{
-  console.log('conectados aqui');
-})
+  .then(() =>{
+    console.log('Logged')
+  })
 
-module.exports = sequelize;
+module.exports = sequelize

@@ -6,12 +6,12 @@ async function getAll(req, res) {
       attributes: {
         exclude: ['createdAt', 'updatedAt']
       }
-    });
-    res.json(usuarios); // Enviar la lista de usuarios como respuesta
+    })
+    res.json(usuarios) // Enviar la lista de usuarios como respuesta
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener usuarios', error: error.message });
+    res.status(500).json({ mensaje: 'Has been error', error: error.message })
   }
-};
+}
 
 module.exports = {
   getAll
