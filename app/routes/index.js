@@ -6,7 +6,8 @@ const files = fs.readdirSync(__dirname)
 const skiped = ['index']
 // Rutas que tendran cada archivo
 const routes = {
-  'user': 'users'
+  'user': 'users',
+  'userRoles': 'user-roles'
 }
 
 // Enrutador de cada archivo

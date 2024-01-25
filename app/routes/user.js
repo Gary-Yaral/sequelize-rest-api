@@ -1,7 +1,7 @@
-const userController = require('../controllers/user')
-const { verifyToken } = require('../middlewares/auth')
+const userRolesController = require('../controllers/userRolesController')
+/* const { verifyToken } = require('../middlewares/auth') */
 const router = require('express').Router()
 
-router.get('/get-all', verifyToken, userController.getAll)
+router.get('/auth', userRolesController.getAuth)
 
 module.exports = { router}

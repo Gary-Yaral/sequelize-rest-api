@@ -1,8 +1,9 @@
 const Sequelize = require('sequelize')
 
-const sequelize = new Sequelize('bdseguros','root','',{
+const sequelize = new Sequelize('anis_reserva','root','',{
   host: 'localhost',
-  dialect: 'mysql'
+  dialect: 'mysql',
+  logging: false
 })
 
 sequelize.authenticate()

@@ -1,18 +1,20 @@
-const User = require('../models/user')
+const User = require('../models/userModel')
 
-async function getAll(req, res) {
+async function add(req, res) {
   try {
-    const usuarios = await User.findAll({
-      attributes: {
-        exclude: ['createdAt', 'updatedAt']
+    const username = req.body.user
+    const found = await User.findOne({
+      where: {
+        user: username
       }
     })
-    res.json(usuarios) // Enviar la lista de usuarios como respuesta
+
+    res.json(found) // Enviar la lista de usuarios como respuesta
   } catch (error) {
     res.status(500).json({ mensaje: 'Has been error', error: error.message })
   }
 }
 
 module.exports = {
-  getAll
+  add
 }
