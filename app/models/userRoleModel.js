@@ -7,12 +7,7 @@ const UserStatus = require('./userStatusModel')
 const UserRoles = db.define(
   'UserRoles',
   {
-    id: {
-      type: Sequelize.INTEGER,
-      primaryKey: true,
-      autoIncrement: false,
-    },
-    rolId:  {
+    roleId:  {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {

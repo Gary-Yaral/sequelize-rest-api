@@ -1,23 +1,12 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
-const { validarCedula } = require('../utils/dniValidator')
 
 const User = db.define(
   'User',
   {
-    id: {
-      type: Sequelize.INTEGER,
-      primaryKey: true,
-      autoIncrement: false,
-    },
     dni: {
       type: Sequelize.STRING,
-      unique: true,
-      validate: {
-        cedulaValida: (value) => {
-          validarCedula(value)
-        }
-      }
+      unique: true
     },
     name: {
       type: Sequelize.STRING,
@@ -36,7 +25,7 @@ const User = db.define(
       }
     },
     /* Datos de acceso */
-    user: {
+    username: {
       type: Sequelize.STRING,
       unique: true
     },

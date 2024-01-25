@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 // Middleware para verificar el token en rutas protegidas
-function verifyToken(req, res, next) {
+function validateToken(req, res, next) {
   const authHeader = req.headers['authorization']
   
   // Si no existe la cabecera retornamos un error
@@ -26,4 +26,4 @@ function verifyToken(req, res, next) {
   })
 }
 
-module.exports = { verifyToken }
+module.exports = { validateToken }

@@ -4,11 +4,6 @@ const Sequelize = require('sequelize')
 const UserStatus = db.define(
   'UserStatus',
   {
-    id: {
-      type: Sequelize.INTEGER,
-      primaryKey: true,
-      autoIncrement: false,
-    },
     rol: {
       type: Sequelize.STRING,
       unique: true,
