@@ -5,7 +5,7 @@ const Role = require('./roleModel')
 const UserStatus = require('./userStatusModel')
 
 const UserRoles = db.define(
-  'UserRoles',
+  'Reservation',
   {
     roleId:  {
       type: Sequelize.INTEGER,

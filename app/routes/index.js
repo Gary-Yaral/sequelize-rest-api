@@ -7,7 +7,8 @@ const skiped = ['index']
 // Rutas que tendran cada archivo
 const routes = {
   'user': 'users',
-  'userRoles': 'user-roles'
+  'userRoles': 'user-roles',
+  'chairType': 'chair-type'
 }
 
 // Enrutador de cada archivo
@@ -21,7 +22,7 @@ files.forEach((file) => {
 // Mensaje de error si la ruta no existe
 router.use('/*', (req, res) => {
   res.status(404)
-  res.send({error: 'Error'})
+  res.send({error: 'Error: URL not found'})
 })
 
 module.exports = { router }

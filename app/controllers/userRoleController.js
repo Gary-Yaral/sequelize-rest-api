@@ -1,4 +1,4 @@
-const Role = require('../models/rolesModel')
+const Role = require('../models/roleModel')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const db_constants = require('../constants/db_constants')
