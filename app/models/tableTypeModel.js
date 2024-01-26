@@ -1,8 +1,8 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
 
-const ChairType = db.define(
-  'ChairType',
+const TableType = db.define(
+  'TableType',
   {
     type:  {
       type: Sequelize.STRING,
@@ -27,7 +27,7 @@ const ChairType = db.define(
   } 
 )
 
-ChairType.sync()
+TableType.sync()
   .then(() => {
     console.log('ChairType table has been synchronized')
   })
@@ -35,4 +35,4 @@ ChairType.sync()
     console.log(err)
   })
 
-module.exports = ChairType
+module.exports = TableType
