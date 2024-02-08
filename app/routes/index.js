@@ -8,9 +8,10 @@ const skiped = ['index']
 const routes = {
   'user': 'users',
   'userAdmin': 'admin',
-  'userRoles': 'user-roles',
+  'userRole': 'roles',
   'chairType': 'chairs',
-  'images': 'images'
+  'images': 'images',
+  'token': 'token'
 }
 
 // Enrutador de cada archivo

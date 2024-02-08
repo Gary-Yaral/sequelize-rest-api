@@ -21,7 +21,31 @@ async function getOnlySuperAdmins(req, res) {
     })
     res.json(users) // Enviar la lista de usuarios como respuesta
   } catch (error) {
-    res.status(500).json({ mensaje: 'Has been error', error: error.message })
+    res.json({ mensaje: 'Has been error', error: error.message })
+  }
+}
+
+async function findOne(req, res) {
+  try {
+    const id = req.params.id
+    if(!id) {
+      return res.json({error: 'No se ha enviado el id del usuario'})
+    }
+    const user = await UserRoles.findOne({
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ['password'] },
+        },
+        Role
+      ],
+      where: {
+        userId: id
+      }
+    })
+    res.json(user)
+  } catch (error) {
+    res.json({ error: error.message })
   }
 }
 
@@ -41,7 +65,7 @@ async function getOnlyAdmins(req, res) {
     })
     res.json(users) // Enviar la lista de usuarios como respuesta
   } catch (error) {
-    res.status(500).json({ mensaje: 'Has been error', error: error.message })
+    res.json({ mensaje: 'Has been error', error: error.message })
   }
 }
 
@@ -61,7 +85,7 @@ async function getOnlyUsers(req, res) {
     })
     res.json(users) // Enviar la lista de usuarios como respuesta
   } catch (error) {
-    res.status(500).json({ mensaje: 'Has been error', error: error.message })
+    res.json({ mensaje: 'Has been error', error: error.message })
   }
 }
 
@@ -119,5 +143,6 @@ module.exports = {
   getOnlySuperAdmins,
   getOnlyAdmins,
   getOnlyUsers,
-  getAuth
+  getAuth,
+  findOne
 }

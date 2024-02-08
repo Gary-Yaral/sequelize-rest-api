@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const { caducity } = require('../utils/jwt')
 
 // Middleware para verificar el token en rutas protegidas
 function validateToken(req, res, next) {
@@ -8,7 +9,6 @@ function validateToken(req, res, next) {
   if (!authHeader) {
     return res.status(403).json({ message: 'Token not found' })
   }
-
   // Separamos lo que se envio en la cabecera
   const tokenParts = authHeader.split(' ')
   // Verificamos si hay dos cadenas y verificamos si existe la cadena bearer
@@ -22,6 +22,10 @@ function validateToken(req, res, next) {
       return res.status(401).json({ message: 'Invalid token' })
     }
     req.user = decoded
+    console.log(caducity(decoded))
+    if(!caducity(decoded).isValid){
+      return res.status(401).json({ message: 'Expired token' })
+    }
     next()
   })
 }

@@ -1,9 +1,9 @@
 
 const chairTypeController = require('../controllers/chairTypeController')
-/* const { validateToken } = require('../middlewares/auth') */
+const { validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 
-router.get('/', chairTypeController.getAll)
+router.get('/', validateToken, chairTypeController.getAll)
 router.post('/', chairTypeController.add)
 router.put('/:id', chairTypeController.update)
 router.delete('/:id', chairTypeController.remove)
