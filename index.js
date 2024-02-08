@@ -2,14 +2,18 @@ require('dotenv').config()
 const express = require('express')
 const sequelize = require('./app/database/config')
 const routes = require('./app/routes/index')
-/* const { generateHash } = require('./app/utils/bcrypt') */
+const path = require('path')
 const app = express()
+const cors = require('cors')
 const PORT = process.env.PORT || 4000 
 
-/* generateHash('Holamundo_2023').then((res) =>{ console.log(res)}) */
-
+app.use(cors({
+  origin: '*'
+}))
 app.use(express.json())
+app.use('/api/images', express.static(path.join(__dirname, 'app' ,'images')))
 app.use('/api', routes.router)
+// Middleware para servir archivos estáticos desde la carpeta 'imagenes'
 
 sequelize.sync()
   .then(() => {

@@ -42,8 +42,8 @@ const UserRoles = db.define(
 User.hasMany(UserRoles, { foreignKey: 'userId' })
 UserRoles.belongsTo(User, { foreignKey: 'userId' })
 
-Role.hasMany(UserRoles, { foreignKey: 'rolId' })
-UserRoles.belongsTo(Role, { foreignKey: 'rolId' })
+Role.hasMany(UserRoles, { foreignKey: 'roleId' })
+UserRoles.belongsTo(Role, { foreignKey: 'roleId' })
 
 UserRoles.sync()
   .then(() => {

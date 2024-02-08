@@ -71,24 +71,23 @@ async function getAuth(req, res) {
     const password = req.body.password
     // Si no se envian los datos enviará un msg de error
     if(!username || !password) {
-      return res.status(401)
-        .json({ 
-          error: 'No se han recibido datos de acceso', 
-        })
+      return res.json({ 
+        error: 'No se han recibido datos de acceso', 
+      })
     }
     // Hacemos la consulta
     let foundUser = await UserRoles.findAll({
       include: [User, Role],
       where: {
-        '$User.user$': username}
+        '$User.username$': username}
     })
     // Si no existe el usuario devuelve error
     if(foundUser.length === 0) {
-      return res.status(401)
-        .json({ 
-          error: 'Usuario o contraseña incorrectos', 
-        })
+      return res.json({ 
+        error: 'Usuario o contraseña incorrectos', 
+      })
     }
+
     // Solo escogemos el primer resultado
     foundUser = foundUser[0]
     // Extraemos el hash de la consulta
@@ -96,10 +95,9 @@ async function getAuth(req, res) {
     // Validamos la contraseña
     const hasAuth = await validateHash(password, hash)
     if(!hasAuth) {
-      return res.status(401)
-        .json({ 
-          error: 'Usuario o contraseña incorrectos', 
-        })
+      return res.json({ 
+        error: 'Usuario o contraseña incorrectos', 
+      })
     }
     // Removemos la contraseña del objeto de respuesta
     delete foundUser.User.dataValues.password
@@ -113,7 +111,7 @@ async function getAuth(req, res) {
     // Restornamos los datos de la sesión
     res.json(foundUser)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.json({ error: error.message })
   }
 }
 

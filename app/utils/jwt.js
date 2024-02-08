@@ -1,11 +1,12 @@
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
+const SECRET_KEY = process.env.SECRET_KEY
 
 // Clave secreta para firmar y verificar el token
-const SECRET_KEY = process.env.SECRET_KEY
 
 // Función para crear un token
 function createToken(data) {
+  console.log(SECRET_KEY)
   return jwt.sign(data, SECRET_KEY, { expiresIn: '1h' })
 }
 

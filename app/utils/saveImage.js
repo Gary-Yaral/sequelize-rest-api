@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid')
 
 function saveImage(base64Image, filename) {
   try {
-    const base64Data = base64Image.replace(/^data:image\/\w+base64,/, '')
+    const base64Data = base64Image.replace(/^data:image\/(jpeg|jpg|png);base64,/, '')
     // Convertir la cadena base64 a Buffer
     const buffer = Buffer.from(base64Data, 'base64')
     // Escribir el Buffer en un archivo

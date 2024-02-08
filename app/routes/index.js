@@ -7,8 +7,10 @@ const skiped = ['index']
 // Rutas que tendran cada archivo
 const routes = {
   'user': 'users',
+  'userAdmin': 'admin',
   'userRoles': 'user-roles',
-  'chairType': 'chair-type'
+  'chairType': 'chairs',
+  'images': 'images'
 }
 
 // Enrutador de cada archivo

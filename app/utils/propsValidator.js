@@ -6,7 +6,7 @@ function wasReceivedAllProps(req, expectedProps) {
   let counter = 0
   for (let i = 0; i < expectedProps.length; i++) {
     if (!props.includes(expectedProps[i])) {
-      counter = counter - 1
+      counter--
       break
     } else {
       counter++
@@ -15,4 +15,19 @@ function wasReceivedAllProps(req, expectedProps) {
   return counter === expectedProps.length
 }
 
-module.exports = { wasReceivedAllProps }
+function hasEmptyFields(req) {
+  const props = Object.keys(req.body)
+  let counter = 0
+  for (let i = 0; i < props.length; i++) {
+    if ((req.body[props[i]] === '')) {
+      counter++
+    }
+  }
+  return counter
+}
+
+
+module.exports = { 
+  wasReceivedAllProps, 
+  hasEmptyFields 
+}

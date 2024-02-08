@@ -25,8 +25,9 @@ CREATE TABLE `chair_type` (
   `type` varchar(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
+  `image` varchar(500) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `chair_type` */
 
@@ -56,6 +57,21 @@ CREATE TABLE `drink_type` (
 
 /*Data for the table `drink_type` */
 
+/*Table structure for table `payment` */
+
+DROP TABLE IF EXISTS `payment`;
+
+CREATE TABLE `payment` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `datetime` datetime NOT NULL,
+  `total` double NOT NULL,
+  `paymentStatusId` int(11) NOT NULL,
+  `reservationId` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `payment` */
+
 /*Table structure for table `payment_status` */
 
 DROP TABLE IF EXISTS `payment_status`;
@@ -69,6 +85,20 @@ CREATE TABLE `payment_status` (
 /*Data for the table `payment_status` */
 
 insert  into `payment_status`(`id`,`status`) values (1,'POR REVISAR'),(2,'APROBADO'),(3,'RECHAZO');
+
+/*Table structure for table `reservation` */
+
+DROP TABLE IF EXISTS `reservation`;
+
+CREATE TABLE `reservation` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `datetime` datetime NOT NULL,
+  `userId` int(11) NOT NULL,
+  `reservationStatusId` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `reservation` */
 
 /*Table structure for table `reservation_status` */
 
@@ -108,6 +138,7 @@ CREATE TABLE `table_type` (
   `type` varchar(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
+  `image` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

@@ -1,6 +1,7 @@
 const sequelize = require('../database/config')
 const ChairType = require('../models/chairTypeModel')
-const { wasReceivedAllProps } = require('../utils/propsValidator')
+const { deteleImage } = require('../utils/deleteFile')
+const { wasReceivedAllProps, hasEmptyFields } = require('../utils/propsValidator')
 const { saveImage, newImageName } = require('../utils/saveImage')
 
 const requiredProps = ['type', 'price', 'description', 'image']
@@ -9,20 +10,23 @@ async function add(req, res) {
   try {
     const transaction = await sequelize.transaction()
     if(!wasReceivedAllProps(req, requiredProps)){
-      return res.status(401)
-        .json({ 
-          error: 'No se han recibido todos los campos', 
-        })
+      return res.json({ 
+        error: 'No se han recibido todos los campos', 
+      })
     }
 
+    if(hasEmptyFields(req) > 0){
+      return res.json({ 
+        error: 'Se han recibido campos vacios', 
+      })
+    }
     // Guardamos la imagen que nos enviaron
     const savedImage = saveImage(req.body.image, newImageName('ChairType').filename)
     // si no se pudo guardar la imagen devolvemos error y no guardamos el registro
     if(savedImage.error) {
-      return res.status(401)
-        .json({ 
-          error: savedImage.error, 
-        })
+      return res.json({ 
+        error: savedImage.error, 
+      })
     }
     //Reemplazamos el base64 por por el nuevo nombre de la imagen
     req.body.image = savedImage.filename
@@ -43,7 +47,7 @@ async function add(req, res) {
       message: 'No se pudo registrar el tipo de silla'
     })
   } catch (error) {
-    res.status(500).json({message: 'Error al crear tipo de silla', error})
+    res.json({message: 'Error al crear tipo de silla', error})
   }
 }
 
@@ -57,20 +61,35 @@ async function update(req, res) {
         })
     }
 
-    // Extraemos los campos
-    const attrs = Object.keys(req.body)
-    attrs.forEach(prop => {
-      if(req.body[prop] === '') {
-        delete req.body[prop]
+    // Buscamos el tipo de silla
+    const found = await ChairType.findOne({
+      where: {
+        id: req.params.id
       }
     })
+    // Si no existe el tipo de silla retornamos error
+    if(!found) {
+      return res.json({
+        result: false,
+        message: 'No existe ese tipo de silla'})
+    }
 
-    // REVISAR SI FUE ENVIADA UNA IMAGEN NUEVA Y SI FUE ENVIADA ENTONCES VERIFICAR SI HAY
-    //REGISTROS VINCULADOS CON ESA IMAGEN QUE YA TENIA GUARDADA
+    
+    // Guardamos la imagen que nos enviaron
+    const savedImage = saveImage(req.body.image, newImageName('ChairType').filename)
+    
+    // si no se pudo guardar la imagen devolvemos error y no guardamos el registro
+    if(savedImage.error) {
+      return res.status(401)
+        .json({ 
+          error: savedImage.error, 
+        })
+    }
 
+    //Reemplazamos el base64 por el nuevo nombre de la imagen
+    req.body.image = savedImage.filename
     // Actualizamos los datos
     const [updatedRows] = await ChairType.update(req.body, {where: {id: req.params.id}}, {transaction})
-
     // Devolvemos error en caso de que no hubo cambios
     if(updatedRows === 0) {
       // Si no se pudo guardar
@@ -81,7 +100,18 @@ async function update(req, res) {
       })
     }
 
+    // Si todo ha ido bien guardamos los cambios en la bd
     await transaction.commit() 
+    // Eliminamos la imagen anterior usando su path
+    const imageName = found.image 
+    const imageWasDeleted = deteleImage(imageName)  
+    // Si al eliminar retorna algo es porque hay error
+    if(imageWasDeleted) {
+      return res.json({
+        error: imageWasDeleted.error
+      })
+    }
+    // Retornamos el mensaje de que todo ha ido bien
     return res.json({
       result: true,
       message: 'Tipo de silla actualizado correctamente'
@@ -119,7 +149,7 @@ async function remove(req, res) {
       })
     }
     //Extraemos el id de registro encontrado
-    const { id } = toDelete.dataValues
+    const { id, image } = toDelete.dataValues
     // si existe lo eliminamos
     const affectedRows = await ChairType.destroy({ where: { id }, transaction})
     // Si no lo encontramos devolvemos meensaje de error
@@ -131,7 +161,15 @@ async function remove(req, res) {
       })
     }
     // Si todo ha ido bien
+    const imageWasDeleted = deteleImage(image)
+    if(imageWasDeleted) {
+      return res.json({
+        error: imageWasDeleted.error
+      })
+    }
+    // Guardamos los cambios en la base de datos
     await transaction.commit()
+    // Retornamos mensjae de que todo ha ido bien
     return res.json({
       result: true,
       message: 'Tipo de silla eliminado correctamente'
@@ -143,13 +181,18 @@ async function remove(req, res) {
 
 async function getAll(req, res) {
   try {
-    const all = await ChairType.findAll()   
+    const currentPage = parseInt(req.query.currentPage)
+    const perPage = parseInt(req.query.perPage)
+    const data = await ChairType.findAndCountAll({
+      limit: perPage,
+      offset: (currentPage - 1) * perPage
+    })
     return res.json({
       result: true,
-      data: all
+      data
     })
   } catch (error) {
-    res.status(500).json({message: 'Error al consultar los datos', error})
+    res.json({error})
   }
 }
 
