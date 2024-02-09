@@ -21,7 +21,7 @@ function deteleImage(imageName) {
     } else {
       return {
         error: true,
-        message: 'No existe imagen en ese path',
+        message: 'No existe la imagen: ' + imageName,
         pathImage: imageName
       }
     }

@@ -21,11 +21,12 @@ function validateToken(req, res, next) {
     if (err) {
       return res.status(401).json({ message: 'Invalid token' })
     }
-    req.user = decoded
-    console.log(caducity(decoded))
+    // Validamos la caducidad del token
     if(!caducity(decoded).isValid){
       return res.status(401).json({ message: 'Expired token' })
     }
+    // Guardamos el token variable usuario de la petición
+    req.user = decoded
     next()
   })
 }

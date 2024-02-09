@@ -17,10 +17,10 @@ function saveImage(base64Image, filename) {
 }
 
 
-function newImageName(tablename) {
+function newImageName(tablename, ext) {
   const uniqueId = uuidv4()
   const now = Date.now()
-  const filename = `${tablename}-${now}-${uniqueId}.jpg`
+  const filename = `${tablename}-${now}-${uniqueId}.${ext}`
   return { filename }
 }
 

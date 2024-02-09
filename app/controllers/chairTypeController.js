@@ -1,38 +1,29 @@
 const sequelize = require('../database/config')
 const ChairType = require('../models/chairTypeModel')
 const { deteleImage } = require('../utils/deleteFile')
-const { wasReceivedAllProps, hasEmptyFields } = require('../utils/propsValidator')
-const { saveImage, newImageName } = require('../utils/saveImage')
+const { wasReceivedAllProps, hasEmptyFields, wasReceivedProps } = require('../utils/propsValidator')
 
 const requiredProps = ['type', 'price', 'description', 'image']
 
 async function add(req, res) {
   try {
+    // Iniciamos la transacción
     const transaction = await sequelize.transaction()
+    // Varificamos que lleguen todas las prpiedades
     if(!wasReceivedAllProps(req, requiredProps)){
       return res.json({ 
         error: 'No se han recibido todos los campos', 
       })
     }
-
+    // Verificamos que no haya propiedades en blanco
     if(hasEmptyFields(req) > 0){
       return res.json({ 
         error: 'Se han recibido campos vacios', 
       })
     }
-    // Guardamos la imagen que nos enviaron
-    const savedImage = saveImage(req.body.image, newImageName('ChairType').filename)
-    // si no se pudo guardar la imagen devolvemos error y no guardamos el registro
-    if(savedImage.error) {
-      return res.json({ 
-        error: savedImage.error, 
-      })
-    }
-    //Reemplazamos el base64 por por el nuevo nombre de la imagen
-    req.body.image = savedImage.filename
-    // Guardamos el registro
+    // Insertamos el registro en el modelo
     const user = await ChairType.create(req.body, {transaction})
-    // Si todo salio bien se guardan cambios
+    // Si todo salio bien se guardan cambios en la base de datos
     if(user.id) {
       await transaction.commit() 
       return res.json({
@@ -40,7 +31,16 @@ async function add(req, res) {
         message: 'Tipo de Silla registrado correctamente'
       })
     }
-    // Si no se guardaron los dos
+    // SI NO SE INSERTÓ EL REGISTRO
+    // eliminamos la imagen que guardamos
+    const imageWasDeleted = deteleImage(req.body.image) 
+    // Si no se pudo eliminar la imagen que guardamos devolvemos error
+    if(imageWasDeleted.error) {
+      await transaction.rollback()
+      return res.json({ error:imageWasDeleted.message })
+    }
+
+    // Una vez eliminada la imagen deshacemos los cambios y devolvemos error
     await transaction.rollback()
     return res.json({
       result: false,
@@ -53,12 +53,13 @@ async function add(req, res) {
 
 async function update(req, res) {
   try {
+    // Creamos la transacción
     const transaction = await sequelize.transaction()
-    if(!wasReceivedAllProps(req, [...requiredProps]) || !req.params.id){
-      return res.status(401)
-        .json({ 
-          error: 'No se han recibido todos los campos', 
-        })
+    // Verificams que nos enviaron todas las propiedades y el id
+    if(!wasReceivedProps(req, requiredProps) || !req.params.id){
+      return res.json({ 
+        error: 'No se han recibido todos los campos', 
+      })
     }
 
     // Buscamos el tipo de silla
@@ -69,25 +70,20 @@ async function update(req, res) {
     })
     // Si no existe el tipo de silla retornamos error
     if(!found) {
-      return res.json({
-        result: false,
-        message: 'No existe ese tipo de silla'})
+      // Eliminamos la imagen que guardamos al principio
+      const deleted = deteleImage(req.body.image)
+      if(deleted.error) {
+        return res.json({error : deleted.message })
+      } else {
+        return res.json({
+          result: false,
+          message: 'No existe ese tipo de silla'})
+      }
+    }    
+    // Si no se envio una imagen la quitamos del body para que no actualice la imagen
+    if(req.body.image === '' | !req.body.image) {
+      delete req.body.image
     }
-
-    
-    // Guardamos la imagen que nos enviaron
-    const savedImage = saveImage(req.body.image, newImageName('ChairType').filename)
-    
-    // si no se pudo guardar la imagen devolvemos error y no guardamos el registro
-    if(savedImage.error) {
-      return res.status(401)
-        .json({ 
-          error: savedImage.error, 
-        })
-    }
-
-    //Reemplazamos el base64 por el nuevo nombre de la imagen
-    req.body.image = savedImage.filename
     // Actualizamos los datos
     const [updatedRows] = await ChairType.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Devolvemos error en caso de que no hubo cambios
@@ -103,13 +99,15 @@ async function update(req, res) {
     // Si todo ha ido bien guardamos los cambios en la bd
     await transaction.commit() 
     // Eliminamos la imagen anterior usando su path
-    const imageName = found.image 
-    const imageWasDeleted = deteleImage(imageName)  
-    // Si al eliminar retorna algo es porque hay error
-    if(imageWasDeleted) {
-      return res.json({
-        error: imageWasDeleted.error
-      })
+    if(req.body.image) {
+      const imageName = found.image 
+      const imageWasDeleted = deteleImage(imageName)  
+      // Si al eliminar retorna algo es porque hay error
+      if(imageWasDeleted) {
+        return res.json({
+          error: imageWasDeleted.message
+        })
+      }
     }
     // Retornamos el mensaje de que todo ha ido bien
     return res.json({
