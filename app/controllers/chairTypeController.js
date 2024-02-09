@@ -124,22 +124,20 @@ async function remove(req, res) {
   try {
     const transaction = await sequelize.transaction()
     if(!req.params.id){
-      return res.status(401)
-        .json({ 
-          error: 'No se han recibido todos los campos', 
-        })
+      return res.json({ 
+        error: 'No se han recibido todos los campos', 
+      })
     }
 
     // Extraemos los campos
     if(req.params.id === '') {
-      return res.status(401)
-        .json({ 
-          error: 'No se ha enviado el id del registro', 
-        })
+      return res.json({ 
+        error: 'No se ha enviado el id del registro', 
+      })
     }
     // Buscamos el registro a eliminar
     const toDelete = await ChairType.findByPk(req.params.id, {transaction})
-    // Si no lo encontramos devolvemos meensaje de error
+    // Si no lo encontramos devolvemos mensaje de error
     if(!toDelete) {
       return res.json({
         result: false,
@@ -173,7 +171,7 @@ async function remove(req, res) {
       message: 'Tipo de silla eliminado correctamente'
     })
   } catch (error) {
-    res.status(500).json({message: 'Error al eliminar tipo de silla', error})
+    res.json({ error })
   }
 }
 
