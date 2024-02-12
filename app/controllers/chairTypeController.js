@@ -1,4 +1,5 @@
 const sequelize = require('../database/config')
+const { Op } = require('sequelize')
 const ChairType = require('../models/chairTypeModel')
 const { deteleImage } = require('../utils/deleteFile')
 const { wasReceivedAllProps, hasEmptyFields, wasReceivedProps } = require('../utils/propsValidator')
@@ -192,9 +193,53 @@ async function getAll(req, res) {
   }
 }
 
+async function filterAndPaginate(req, res) {
+  try {
+    if(!wasReceivedAllProps(req, ['currentPage', 'perPage', 'filter'])){
+      return res.json({ 
+        error: 'No se han recibido todos los campos', 
+      })
+    }
+    // Verificamos que no haya propiedades en blanco
+    if(hasEmptyFields(req) > 0){
+      return res.json({ 
+        error: 'Se han recibido campos vacios', 
+      })
+    }
+    const { currentPage, perPage, filter } = req.body
+    // Parseamos los valores a números
+    const page = parseInt(currentPage)
+    const pageSize = parseInt(perPage)
+
+    // Construir la condición de filtro
+    const filterCondition = {
+      [Op.or]: [
+        { type: { [Op.like]: `%${filter}%` } },
+        { price: { [Op.like]: `%${filter}%` } },
+        { description: { [Op.like]: `%${filter}%` } }
+      ]
+    }
+
+    // Realizar la consulta con paginación y filtros
+    const chairTypes = await ChairType.findAndCountAll({
+      where: filterCondition,
+      limit: pageSize,
+      offset: (page - 1) * pageSize
+    })
+
+    return res.json({
+      result: true,
+      items: chairTypes
+    }) 
+  } catch(error) {
+    res.json({error})
+  }
+}
+
 module.exports = {
   add,
   update,
   remove,
-  getAll
+  getAll, 
+  filterAndPaginate
 }

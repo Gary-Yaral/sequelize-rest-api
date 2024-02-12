@@ -24,6 +24,7 @@ const upload = multer({ storage: storage })
 
 router.get('/', validateToken, chairTypeController.getAll)
 router.post('/', validateToken, upload.single('image'), chairTypeController.add)
+router.post('/filter', chairTypeController.filterAndPaginate)
 router.put('/:id', upload.single('image'), chairTypeController.update)
 router.delete('/:id', chairTypeController.remove)
 
