@@ -27,9 +27,11 @@ CREATE TABLE `chair_type` (
   `description` varchar(255) NOT NULL,
   `image` varchar(500) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `chair_type` */
+
+insert  into `chair_type`(`id`,`type`,`price`,`description`,`image`) values (65,'sdfdf',3,'sddg','Chair-Type-1707497213253-75958754-74d3-4d67-96dd-0af6e3bfa06f..png'),(66,'sdgds',34,'sasf','Chair-Type-1707497720566-342976a3-37d3-4d06-a286-f7184cb099b3..jpg'),(67,'dgsg',334,'dsfsdf','Chair-Type-1707499958628-66e14a1b-054d-48c3-bb2e-9d61ba5e7a85..jpg'),(68,'sdgg',3,'dsg','Chair-Type-1707500161023-5c0f398a-b8d9-4ed9-9191-fd1b11d316b0..jpg'),(69,'dsdg',435,'ffsd','Chair-Type-1707500635940-b5615366-9906-408e-94e5-81cb7bc4e8a6..jpg'),(71,'sd Hola',32,'sdd','Chair-Type-1707756816787-cb24504c-d229-45d1-b846-d5264563494c..jpg');
 
 /*Table structure for table `dishes_type` */
 
@@ -120,14 +122,14 @@ DROP TABLE IF EXISTS `role`;
 
 CREATE TABLE `role` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `rol` varchar(255) DEFAULT NULL,
+  `role` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `rol` (`rol`)
+  UNIQUE KEY `rol` (`role`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `role` */
 
-insert  into `role`(`id`,`rol`) values (2,'ADMINISTRADOR'),(1,'SUPER ADMIN'),(3,'USUARIO');
+insert  into `role`(`id`,`role`) values (2,'ADMINISTRADOR'),(1,'SUPER ADMIN'),(3,'USUARIO');
 
 /*Table structure for table `table_type` */
 
@@ -160,9 +162,11 @@ CREATE TABLE `user` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `dni` (`dni`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `user` */
+
+insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'0000000000','Fabricio Alfredo','Guevara Flores','0944664343','fabricioguevara@gmail.com','F_Nerd2023','$2b$10$3u6Hjt2ekjh/q25Pj08vOOUGy7EomnCAPXDqrrv6geDlv/ZCIgS9a');
 
 /*Table structure for table `user_roles` */
 
@@ -180,9 +184,11 @@ CREATE TABLE `user_roles` (
   CONSTRAINT `user_roles_ibfk_1` FOREIGN KEY (`roleId`) REFERENCES `role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `user_roles_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `user_roles_ibfk_3` FOREIGN KEY (`statusId`) REFERENCES `user_status` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `user_roles` */
+
+insert  into `user_roles`(`id`,`roleId`,`userId`,`statusId`) values (10,1,39,1);
 
 /*Table structure for table `user_status` */
 
@@ -190,14 +196,14 @@ DROP TABLE IF EXISTS `user_status`;
 
 CREATE TABLE `user_status` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `rol` varchar(255) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `rol` (`rol`)
+  UNIQUE KEY `rol` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `user_status` */
 
-insert  into `user_status`(`id`,`rol`) values (1,'ACTIVO'),(2,'BLOQUEADO');
+insert  into `user_status`(`id`,`name`) values (1,'ACTIVO'),(2,'BLOQUEADO');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

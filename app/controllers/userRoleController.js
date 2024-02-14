@@ -1,9 +1,68 @@
 const Role = require('../models/roleModel')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
-const db_constants = require('../constants/db_constants')
+const DB_CONSTANTS = require('../constants/db_constants')
 const { validateHash } = require('../utils/bcrypt')
 const { createToken } = require('../utils/jwt')
+const { Op } = require('sequelize')
+const UserStatus = require('../models/userStatusModel')
+
+
+async function getUsers(req, res) {
+  try {
+    const roleId = req.user.data.Role.id
+    // Si es administrador solo podrá darle el rol de usuario a los usuarios que registre 
+    if(roleId === DB_CONSTANTS.ROLES.SUPER_ADMIN) {
+      const users = await UserRoles.findAll({
+        include: [
+          {
+            model: User,
+            attributes: { exclude: ['password'] },
+          },
+          Role,
+          UserStatus
+        ],
+        where: {
+          roleId: {
+            [Op.not]: DB_CONSTANTS.ROLES.SUPER_ADMIN
+          }
+        },
+        raw: true
+      })
+      return res.json({
+        data: {
+          rows: users
+        }
+      })
+    }
+
+    if(roleId === DB_CONSTANTS.ROLES.ADMIN) {
+      const users = await UserRoles.findAll({
+        include: [
+          {
+            model: User,
+            attributes: { exclude: ['password'] },
+          },
+          Role,
+          UserStatus
+        ],
+        where: {
+          roleId: DB_CONSTANTS.ROLES.USER
+        },
+        raw: true
+      })
+      return res.json({
+        data: {
+          rows: users
+        }
+      })
+    }
+    return res.json({error: 'No se han podido cargar los usuarios'})
+   
+  }catch(error) {
+    return res.json({error})
+  }
+}
 
 async function getOnlySuperAdmins(req, res) {
   try {
@@ -16,7 +75,7 @@ async function getOnlySuperAdmins(req, res) {
         Role
       ],
       where: {
-        rolId: db_constants.ROLES.SUPER_ADMIN
+        rolId: DB_CONSTANTS.ROLES.SUPER_ADMIN
       }
     })
     res.json(users) // Enviar la lista de usuarios como respuesta
@@ -60,7 +119,7 @@ async function getOnlyAdmins(req, res) {
         Role
       ],
       where: {
-        rolId: db_constants.ROLES.ADMIN
+        rolId: DB_CONSTANTS.ROLES.ADMIN
       }
     })
     res.json(users) // Enviar la lista de usuarios como respuesta
@@ -80,10 +139,10 @@ async function getOnlyUsers(req, res) {
         Role
       ],
       where: {
-        rolId: db_constants.ROLES.USER
+        rolId: DB_CONSTANTS.ROLES.USER
       }
     })
-    res.json(users) // Enviar la lista de usuarios como respuesta
+    res.json(users)
   } catch (error) {
     res.json({ mensaje: 'Has been error', error: error.message })
   }
@@ -144,5 +203,6 @@ module.exports = {
   getOnlyAdmins,
   getOnlyUsers,
   getAuth,
-  findOne
+  findOne, 
+  getUsers
 }

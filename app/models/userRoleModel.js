@@ -45,6 +45,9 @@ UserRoles.belongsTo(User, { foreignKey: 'userId' })
 Role.hasMany(UserRoles, { foreignKey: 'roleId' })
 UserRoles.belongsTo(Role, { foreignKey: 'roleId' })
 
+UserStatus.hasMany(UserRoles, { foreignKey: 'statusId' })
+UserRoles.belongsTo(UserStatus, { foreignKey: 'statusId' })
+
 UserRoles.sync()
   .then(() => {
     console.log('UserRoles table has been synchronized')
