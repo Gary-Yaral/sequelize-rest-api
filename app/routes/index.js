@@ -11,7 +11,9 @@ const routes = {
   'userRole': 'roles',
   'chairType': 'chairs',
   'images': 'images',
-  'token': 'token'
+  'token': 'token',
+  'userStatus': 'status',
+  'role': 'role'
 }
 
 // Enrutador de cada archivo

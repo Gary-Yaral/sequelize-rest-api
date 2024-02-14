@@ -4,7 +4,7 @@ const Sequelize = require('sequelize')
 const Role = db.define(
   'Role',
   {
-    rol: {
+    role: {
       type: Sequelize.STRING,
       unique: true,
     },
