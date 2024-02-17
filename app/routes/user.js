@@ -4,8 +4,8 @@ const userController = require('../controllers/userController')
 const router = require('express').Router()
 
 router.get('/auth', userRoleController.getAuth)
-router.post('/add', userController.add)
-router.put('/update', userController.update)
-router.delete('/remove', userController.remove)
+router.post('/', userController.add)
+router.put('/:id/:roleId', userController.update)
+router.delete('/', userController.remove)
 
 module.exports = { router}
