@@ -81,13 +81,12 @@ async function update(req, res) {
     }
 
     //Verificamos si existe ese usuario
-    // Buscamos el tipo de silla
     const found = await User.findOne({
       where: {
         id: req.params.id
       }
     })
-    // Si no existe el tipo de silla retornamos error
+    // Si no existe el usuario retornamos error
     if(!found) {
       return res.json({
         result: false,
@@ -106,33 +105,21 @@ async function update(req, res) {
       req.body.password =  await generateHash(req.body.password)
     }
     // Actualizamos los datos
-    let updatedRows = await User.update(req.body, {where: {id: req.params.id}}, {transaction})
-    console.log(updatedRows)
-
-    // Devolvemos error en caso de que no hubo cambios
-    if(updatedRows === 0) {
-      // Si no se pudo guardar
-      await transaction.rollback()
-      return res.json({
-        result: false,
-        message: 'No se realizó cambios. Los datos recibidos son similares a los registrados'
-      })
-    }
+    let updatedUserRows = await User.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Le agregamos sus rol de usuario
     const roleData = {
       roleId: req.body.role,
       statusId: req.body.status
     }
-
-
+    
     // Actualizamos los datos
-    updatedRows = await UserRoles.update(roleData, {where: {id: req.params.roleId}}, {transaction})
-    if(updatedRows === 0) {
-      // Si no se pudo guardar
+    let updatedRoleRows = await UserRoles.update(roleData, {where: {id: req.params.roleId}}, {transaction})
+    if(updatedRoleRows[0] === 0 && updatedUserRows[0] === 0) {
+      // Recibieron los mismos datos
       await transaction.rollback()
       return res.json({
         result: false,
-        message: 'No se realizó cambios. Los datos recibidos son similares a los registrados'
+        message: 'Usuario actualizado correctamente. Los datos recibidos son similares a los registrados'
       })
     }
     
@@ -147,10 +134,10 @@ async function update(req, res) {
       if(error.errors[0].type === 'unique violation') {
         const path = error.errors[0].path
         if(path === 'dni') {
-          return res.status(500).json({ error: 'Ya existe otro usuario con esa cédula'})
+          return res.json({ error: 'Ya existe otro usuario con esa cédula'})
         }
         if(path === 'username') {
-          return res.status(500).json({ error: `Ya existe el usuario: ${req.body.username}` })
+          return res.json({ error: `Ya existe el usuario: ${req.body.username}` })
         }
       }
     }
