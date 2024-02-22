@@ -7,6 +7,103 @@ const { createToken } = require('../utils/jwt')
 const { Op } = require('sequelize')
 const UserStatus = require('../models/userStatusModel')
 
+async function filterAndPaginate(req, res) {
+  try {
+    // Parseamos los valores a números
+    const currentPage = parseInt(req.body.currentPage)
+    const perPage = parseInt(req.body.perPage)
+    const roleId = req.user.data.Role.id
+    let filter = req.body.filter
+    let filterCondition = {
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ['password'] },
+        },
+        Role,
+        UserStatus
+      ],
+      limit: perPage,
+      offset: (currentPage - 1) * perPage,
+      raw: true
+    } 
+    // Si es super administrador podrá obtener todos menos a él mismo
+    if(roleId === DB_CONSTANTS.ROLES.SUPER_ADMIN) {  
+      filterCondition.where = {
+        roleId: {
+          [Op.not]: DB_CONSTANTS.ROLES.SUPER_ADMIN
+        }
+      }
+    }
+    // Si es solo administrador podrá obtener solo usuarios normales
+    if(roleId === DB_CONSTANTS.ROLES.ADMIN) {  
+      filterCondition.where = {
+        roleId: DB_CONSTANTS.ROLES.USER
+      } 
+    }
+
+    // Para que busque cualquier coincidencia en esos campos
+    filterCondition.where[Op.or] = [
+      { '$User.dni$': { [Op.like]: `%${filter}%` } },
+      { '$User.name$': { [Op.like]: `%${filter}%` } },
+      { '$User.lastname$': { [Op.like]: `%${filter}%` } },
+      { '$User.email$': { [Op.like]: `%${filter}%` } },
+      { '$User.telephone$': { [Op.like]: `%${filter}%` } },
+      { '$Role.role$': { [Op.like]: `%${filter}%` } },
+      { '$UserStatus.name$': { [Op.like]: `%${filter}%` } }
+    ]
+
+    const data = await UserRoles.findAndCountAll(filterCondition)
+    return res.json({
+      result: true, 
+      data
+    })
+  } catch(error) {
+    res.json({error})
+  }
+}
+
+async function getAll(req, res) {
+  try {
+    const currentPage = parseInt(req.query.currentPage)
+    const perPage = parseInt(req.query.perPage)
+    const roleId = req.user.data.Role.id
+    let filterCondition = {
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ['password'] },
+        },
+        Role,
+        UserStatus
+      ],
+      limit: perPage,
+      offset: (currentPage - 1) * perPage,
+      raw: true
+    } 
+    // Si es super administrador podrá obtener todos menos a él mismo
+    if(roleId === DB_CONSTANTS.ROLES.SUPER_ADMIN) {  
+      filterCondition.where = {
+        roleId: {
+          [Op.not]: DB_CONSTANTS.ROLES.SUPER_ADMIN
+        }
+      }
+    }
+    // Si es solo administrador podrá obtener solo usuarios normales
+    if(roleId === DB_CONSTANTS.ROLES.ADMIN) {  
+      filterCondition.where = {
+        roleId: DB_CONSTANTS.ROLES.USER
+      } 
+    }
+    const data = await UserRoles.findAndCountAll(filterCondition)
+    return res.json({
+      result: true, 
+      data
+    })
+  } catch (error) {
+    res.json({error})
+  }
+}
 
 async function getUsers(req, res) {
   try {
@@ -215,5 +312,7 @@ module.exports = {
   getOnlyUsers,
   getAuth,
   findOne, 
-  getUsers
+  getUsers,
+  getAll,
+  filterAndPaginate
 }

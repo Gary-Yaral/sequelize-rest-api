@@ -151,8 +151,6 @@ async function remove(req, res) {
     if(!req.params.id){
       return res.json({ error: 'No se ha recibido el id del registro a eliminar' })
     }
-
-    console.log(req.params.id)
     // Buscamos el registro a eliminar
     const userToDelete = await User.findOne({ where: { id: req.params.id }})
     // Si no lo encontramos devolvemos mensaje de error
