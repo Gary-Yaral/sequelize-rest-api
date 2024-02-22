@@ -206,30 +206,29 @@ async function filterAndPaginate(req, res) {
         error: 'Se han recibido campos vacios', 
       })
     }
-    const { currentPage, perPage, filter } = req.body
+    const filter = req.body.filter
     // Parseamos los valores a números
-    const page = parseInt(currentPage)
-    const pageSize = parseInt(perPage)
+    const currentPage = parseInt(req.body.currentPage)
+    const perPage = parseInt(req.body.perPage)
 
     // Construir la condición de filtro
     const filterCondition = {
-      [Op.or]: [
-        { type: { [Op.like]: `%${filter}%` } },
-        { price: { [Op.like]: `%${filter}%` } },
-        { description: { [Op.like]: `%${filter}%` } }
-      ]
+      limit: perPage,
+      offset: (currentPage - 1) * perPage,
+      raw: true,
+      where: {
+        [Op.or]: [
+          { type: { [Op.like]: `%${filter}%` } },
+          { price: { [Op.eq]: filter } },
+          { description: { [Op.like]: `%${filter}%` } }
+        ]
+      }
     }
-
     // Realizar la consulta con paginación y filtros
-    const chairTypes = await ChairType.findAndCountAll({
-      where: filterCondition,
-      limit: pageSize,
-      offset: (page - 1) * pageSize
-    })
-
+    const data = await ChairType.findAndCountAll(filterCondition)
     return res.json({
       result: true,
-      items: chairTypes
+      data
     }) 
   } catch(error) {
     res.json({error})
