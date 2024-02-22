@@ -2,7 +2,7 @@ const sequelize = require('../database/config')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const { generateHash } = require('../utils/bcrypt')
-const { wasReceivedAllProps, hasEmptyFields } = require('../utils/propsValidator')
+const { wasReceivedAllProps, hasEmptyFields, hasSameValue } = require('../utils/propsValidator')
 
 const requiredProps = [
   'dni', 'name', 'lastname', 'email', 'role', 'status', 'username', 'telephone', 'password'
@@ -79,50 +79,49 @@ async function update(req, res) {
           error: 'No se han recibido todos los campos', 
         })
     }
-
     //Verificamos si existe ese usuario
-    const found = await User.findOne({
-      where: {
-        id: req.params.id
-      }
-    })
+    const found = await User.findOne({ where: { id: req.params.id }})
     // Si no existe el usuario retornamos error
     if(!found) {
-      return res.json({
-        result: false,
-        message: 'No existe ese usuario'})
-    }   
-
-    // Extraemos los campos
+      return res.json({ result: false,  message: 'No existe ese usuario'})
+    }      
+    // Eliminamos los campos que vengan vacios
     const attrs = Object.keys(req.body)
     attrs.forEach(prop => {
-      if(req.body[prop] === '') {
-        delete req.body[prop]
-      }
+      if(req.body[prop] === '') { delete req.body[prop] }
     })
+    // Comparamos los datos del usuario para ver si son iguales a los que ya tiene
+    let isSameUserInfo = hasSameValue(req.body, found, ['role', 'status'])
     // Si existe contraseña creamos el hash
     if(req.body.password) {
       req.body.password =  await generateHash(req.body.password)
     }
-    // Actualizamos los datos
-    let updatedUserRows = await User.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Le agregamos sus rol de usuario
-    const roleData = {
-      roleId: req.body.role,
-      statusId: req.body.status
-    }
-    
-    // Actualizamos los datos
-    let updatedRoleRows = await UserRoles.update(roleData, {where: {id: req.params.roleId}}, {transaction})
-    if(updatedRoleRows[0] === 0 && updatedUserRows[0] === 0) {
-      // Recibieron los mismos datos
+    // Convertimos a mayusculas el nombre y apellido
+    req.body.name = req.body.name.toUpperCase()
+    req.body.lastname = req.body.lastname.toUpperCase()
+    // Actualizamos los datos del usuario
+    let [updatedUserRows] = await User.update(req.body, {where: {id: req.params.id}}, {transaction})
+    // Consultamos el rol de usuario para compararlo
+    const foundRole = await UserRoles.findOne({where: {id: req.params.roleId}})
+    // Creamos objeto con los nuevos datos del rol del ususario
+    const {role, status} = req.body
+    const roleData = { roleId: role, statusId: status } 
+    // Verificamos si la info es la misma que ya tiene guardada
+    let isSameUserRoleInfo = hasSameValue(roleData, foundRole)
+    // Actualizamos los datos del rol del usuario
+    let [updatedRoleRows] = await UserRoles.update(roleData, {where: {id: req.params.roleId}}, {transaction})
+    //Verificamos si tenemos que guardar los cambios, revisando si las datos fueron diferentes
+    const userWasUpdated = updatedUserRows === 0 && isSameUserInfo
+    const userRoleWasUpdated = updatedRoleRows === 0 && isSameUserRoleInfo
+    if(userWasUpdated && userRoleWasUpdated) {
+      // Recibieron la misma informacion que ya tenia por lo que no se guarda ningun cambio
       await transaction.rollback()
       return res.json({
         result: false,
-        message: 'Usuario actualizado correctamente. Los datos recibidos son similares a los registrados'
+        message: 'Usuario actualizado correctamente'
       })
     }
-    
+    // Guardamos los cambios
     await transaction.commit() 
     return res.json({
       result: true,
@@ -142,39 +141,29 @@ async function update(req, res) {
       }
     }
 
-    res.status(500).json({message: 'Error al actualizar usuario', error})
+    res.json({message: 'Error al actualizar usuario', error})
   }
 }
 
 async function remove(req, res) {
   try {
     const transaction = await sequelize.transaction()
-    if(!wasReceivedAllProps(req, ['id'])){
-      return res.status(401)
-        .json({ 
-          error: 'No se han recibido todos los campos', 
-        })
+    if(!req.params.id){
+      return res.json({ error: 'No se ha recibido el id del registro a eliminar' })
     }
-    // Extraemos los campos
-    if(req.body.id === '') {
-      return res.status(401)
-        .json({ 
-          error: 'No se han recibido todos los campos', 
-        })
-    }
+
+    console.log(req.params.id)
     // Buscamos el registro a eliminar
-    const userToDelete = await User.findByPk(req.body.id, {transaction})
-    // Si no lo encontramos devolvemos meensaje de error
+    const userToDelete = await User.findOne({ where: { id: req.params.id }})
+    // Si no lo encontramos devolvemos mensaje de error
     if(!userToDelete) {
       return res.json({
         result: false,
         message: 'Usuario no existe en el sistema'
       })
     }
-    //Extraemos el id de registro encontrado
-    const { id } = userToDelete.dataValues
-    // si existe lo eliminamos
-    const affectedRows = await User.destroy({ where: { id }, transaction})
+    // Si existe el usuario entonces lo eliminamos
+    const affectedRows = await User.destroy({ where: { id: req.params.id }, transaction})
     // Si no lo encontramos devolvemos meensaje de error
     if(affectedRows === 0) {
       await transaction.rollback()
@@ -183,14 +172,14 @@ async function remove(req, res) {
         message: 'Usuario no se pudo eliminar del sistema'
       })
     }
-    // Si todo ha ido bien
+    // Si todo ha ido bien guardamos los cambios
     await transaction.commit()
     return res.json({
       result: true,
       message: 'Usuario eliminado correctamente'
     })
   } catch (error) {
-    res.status(500).json({message: 'Error al actualizar usuario', error})
+    res.json({message: 'Error al actualizar usuario', error})
   }
 }
 

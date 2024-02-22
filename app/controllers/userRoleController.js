@@ -170,9 +170,20 @@ async function getAuth(req, res) {
         error: 'Usuario o contraseña incorrectos', 
       })
     }
-
     // Solo escogemos el primer resultado
     foundUser = foundUser[0]
+    // Si el usuario está bloqueado
+    if(foundUser.dataValues.statusId === DB_CONSTANTS.USER_STATUS.BLOQUEADO) {
+      return res.json({ 
+        error: 'Acceso denegado. Comuniquese con el administrador', 
+      })
+    }
+    // Si un usuario cualquiera intenta acceder
+    if(foundUser.dataValues.roleId === DB_CONSTANTS.ROLES.USER){
+      return res.json({ 
+        error: 'Usuario o contraseña incorrectos', 
+      })
+    }
     // Extraemos el hash de la consulta
     const hash = foundUser.User.dataValues.password
     // Validamos la contraseña

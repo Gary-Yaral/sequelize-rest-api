@@ -48,9 +48,35 @@ function hasEmptyFields(req) {
   return counter
 }
 
+function hasSameValue(reqData, tableSQL, exclude = []) {
+  let requestData = { ...reqData }
+  let modelSQL = { ...tableSQL.dataValues }
+  // Remove las que vamos a excluir
+  exclude.forEach(key => {
+    delete requestData[key]
+  })
+  // Extraemos todas propiedades que compararemos
+  const props = Object.keys(requestData)
+  let equalProps = []
+  props.forEach(prop=>{
+    if(modelSQL[prop]){
+      let propTableType = typeof tableSQL[prop]
+      let propReqDataType = typeof reqData[prop]
+      if(propTableType === propReqDataType) {
+        if(tableSQL[prop] === reqData[prop]) {
+          equalProps.push(prop)
+        }
+      }
+    }
+  })
+  // Comparamos si ambos arreglos tienen la misma cantidad de elementos
+  return props.length === equalProps.length
+}
+
 
 module.exports = { 
   wasReceivedAllProps, 
   hasEmptyFields,
-  wasReceivedProps
+  wasReceivedProps,
+  hasSameValue
 }

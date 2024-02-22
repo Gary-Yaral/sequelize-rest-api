@@ -6,6 +6,6 @@ const router = require('express').Router()
 router.get('/auth', userRoleController.getAuth)
 router.post('/', userController.add)
 router.put('/:id/:roleId', userController.update)
-router.delete('/', userController.remove)
+router.delete('/:id', userController.remove)
 
 module.exports = { router}
