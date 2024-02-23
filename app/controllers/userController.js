@@ -2,7 +2,7 @@ const sequelize = require('../database/config')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const { generateHash } = require('../utils/bcrypt')
-const { wasReceivedAllProps, hasEmptyFields, hasSameValue } = require('../utils/propsValidator')
+const { wasReceivedAllProps, getPropsOfQuery, hasEmptyFields, areEquals, extractProperties, extractPropsAndRename } = require('../utils/propsValidator')
 
 const requiredProps = [
   'dni', 'name', 'lastname', 'email', 'role', 'status', 'username', 'telephone', 'password'
@@ -80,68 +80,109 @@ async function update(req, res) {
         })
     }
     //Verificamos si existe ese usuario
-    const found = await User.findOne({ where: { id: req.params.id }})
-    // Si no existe el usuario retornamos error
-    if(!found) {
-      return res.json({ result: false,  message: 'No existe ese usuario'})
-    }      
-    // Eliminamos los campos que vengan vacios
-    const attrs = Object.keys(req.body)
-    attrs.forEach(prop => {
-      if(req.body[prop] === '') { delete req.body[prop] }
+    const found = await UserRoles.findOne({ 
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ['password'] },
+        }
+      ],
+      raw: true,
+      where: { userId: req.params.id }
     })
-    // Comparamos los datos del usuario para ver si son iguales a los que ya tiene
-    let isSameUserInfo = hasSameValue(req.body, found, ['role', 'status'])
-    // Si existe contraseña creamos el hash
-    if(req.body.password) {
-      req.body.password =  await generateHash(req.body.password)
-    }
     // Convertimos a mayusculas el nombre y apellido
     req.body.name = req.body.name.toUpperCase()
     req.body.lastname = req.body.lastname.toUpperCase()
-    // Actualizamos los datos del usuario
-    let [updatedUserRows] = await User.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Consultamos el rol de usuario para compararlo
-    const foundRole = await UserRoles.findOne({where: {id: req.params.roleId}})
-    // Creamos objeto con los nuevos datos del rol del ususario
-    const {role, status} = req.body
-    const roleData = { roleId: role, statusId: status } 
-    // Verificamos si la info es la misma que ya tiene guardada
-    let isSameUserRoleInfo = hasSameValue(roleData, foundRole)
-    // Actualizamos los datos del rol del usuario
-    let [updatedRoleRows] = await UserRoles.update(roleData, {where: {id: req.params.roleId}}, {transaction})
-    //Verificamos si tenemos que guardar los cambios, revisando si las datos fueron diferentes
-    const userWasUpdated = updatedUserRows === 0 && isSameUserInfo
-    const userRoleWasUpdated = updatedRoleRows === 0 && isSameUserRoleInfo
-    if(userWasUpdated && userRoleWasUpdated) {
-      // Recibieron la misma informacion que ya tenia por lo que no se guarda ningun cambio
+    // Obtenemos los datos del USUARIO para comparar y guardar
+    const userProps = requiredProps.filter(prop => prop !== 'role' && prop !== 'status')
+    const newUserData = extractProperties(req.body, userProps)
+    const currentUserData = getPropsOfQuery('User', found)
+    // Obtenemos los datos del ROL de usuario para comparar y guardar
+    const { roleId, statusId } = found
+    const currentRoleData = {roleId, statusId}
+    const newRoleData = extractPropsAndRename(req.body, ['role', 'status'],['roleId', 'statusId'])
+    const userRoleInfoIsSame = areEquals(newRoleData, currentRoleData)
+    // Validadores de que se actualizaron los datos
+    let errors = {}  
+    // Si la contraseña viene vacia entonces verificamos si la información recibida es la misma
+    if(req.body.password === ''){
+      delete newUserData.password
+      // Extramos solo los datos del usuario
+      const userInfoIsSame = areEquals(newUserData, currentUserData)
+      // Si la informacion es diferente actualizamos
+      if(!userInfoIsSame) {
+        errors.user = await updateUser(req.params.id, newUserData, transaction)
+      }
+    } else {
+      // Si la contraseña existe creamos el hash
+      newUserData.password =  await generateHash(req.body.password)
+      // Actualizamos los datos del usuario porque si habran filas afectadas
+      errors.user = await updateUser(req.params.id, newUserData, transaction)    
+    }
+    // Actualizamos el rol solo si la información es diferente
+    if(!userRoleInfoIsSame) {
+      errors.role = await updateUserRole(req.params.roleId, newRoleData, transaction)
+    }
+    // Verificamos si hubo error al actualizar el usuario
+    if(errors.user) {
       await transaction.rollback()
       return res.json({
         result: false,
-        message: 'Usuario actualizado correctamente'
+        message: errors.user.message
       })
-    }
-    // Guardamos los cambios
-    await transaction.commit() 
+    } 
+    // Verificamos si hubo error al actualizar el rol del usuario
+    if(errors.role) {
+      await transaction.rollback()
+      return res.json({
+        result: false,
+        message: errors.role.message
+      })
+    }  
+    // Si todo ha ido bien guardamos los cambios
+    await transaction.commit()
     return res.json({
       result: true,
       message: 'Usuario actualizado correctamente'
     })
-   
+
   } catch (error) {
     if(error.errors && Array.isArray(error.errors)) {
       if(error.errors[0].type === 'unique violation') {
         const path = error.errors[0].path
         if(path === 'dni') {
-          return res.json({ error: 'Ya existe otro usuario con esa cédula'})
+          return res.json({ result: false, message: 'Ya existe otro usuario con esa cédula'})
         }
         if(path === 'username') {
-          return res.json({ error: `Ya existe el usuario: ${req.body.username}` })
+          return res.json({ result: false, message: `Ya existe el usuario: ${req.body.username}` })
         }
       }
     }
 
-    res.json({message: 'Error al actualizar usuario', error})
+    res.json({message: 'Los datos no se actualizado por error desconocido', error})
+  }
+}
+
+async function updateUser(id, data, transaction) {
+  // Actualizamos los datos del usuario
+  let [affectedRows] = await User.update(data, {where: {id}}, {transaction})
+  if(affectedRows === 0) {
+    // Recibieron la misma informacion que ya tenia por lo que no se guarda ningun cambio
+    await transaction.rollback()
+    return {
+      message: 'Error al actualizar los datos del usuario'
+    }
+  }
+}
+
+async function updateUserRole(id, data, transaction) {
+  let [affectedRows] = await UserRoles.update(data, {where: {id}}, {transaction})
+  if(affectedRows === 0) {
+    // Recibieron la misma informacion que ya tenia por lo que no se guarda ningun cambio
+    await transaction.rollback()
+    return {
+      message: 'Error al actualizar el rol del usuario'
+    }
   }
 }
 

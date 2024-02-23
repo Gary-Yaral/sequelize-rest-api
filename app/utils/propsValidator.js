@@ -48,29 +48,67 @@ function hasEmptyFields(req) {
   return counter
 }
 
-function hasSameValue(reqData, tableSQL, exclude = []) {
-  let requestData = { ...reqData }
-  let modelSQL = { ...tableSQL.dataValues }
-  // Remove las que vamos a excluir
-  exclude.forEach(key => {
-    delete requestData[key]
-  })
+function areEquals(newData, currentData) {
   // Extraemos todas propiedades que compararemos
-  const props = Object.keys(requestData)
+  const newProps = Object.keys(newData)
+  const currentProps = Object.keys(newData)
+  if(newProps.length !== currentProps.length) {
+    return false
+  }
+
   let equalProps = []
-  props.forEach(prop=>{
-    if(modelSQL[prop]){
-      let propTableType = typeof tableSQL[prop]
-      let propReqDataType = typeof reqData[prop]
-      if(propTableType === propReqDataType) {
-        if(tableSQL[prop] === reqData[prop]) {
-          equalProps.push(prop)
-        }
+  newProps.forEach( prop =>{
+    if(currentData[prop]){
+      // Verificamos que sean del mismo tipo
+      if(currentData[prop] === newData[prop]) {
+        equalProps.push(prop)
       }
     }
   })
   // Comparamos si ambos arreglos tienen la misma cantidad de elementos
-  return props.length === equalProps.length
+  return newProps.length === equalProps.length
+}
+
+function removeEmpty(object) {
+  // Eliminamos los campos que vengan vacios
+  const attrs = Object.keys(object)
+  attrs.forEach(prop => {
+    if(object[prop] === '') { delete object[prop] }
+  })
+}
+
+// Extrae solo las propiedades de un modelo en una consulta tipo raw
+function getPropsOfQuery(modelName, object) {
+  const keys = Object.keys(object)
+  let newObject = {}
+  keys.map((key)=> {
+    if(key.includes(`${modelName}.`)) {
+      let prop = key.split('.')[1]
+      newObject[prop] = object[key]
+    }
+  })
+  delete newObject.id
+  return newObject
+}
+
+function extractProperties(object, props) {
+  let obj = {}
+  props.forEach(prop => {
+    if(object[prop]) {
+      obj[prop] = object[prop]
+    }
+  })
+  return obj
+}
+
+function extractPropsAndRename(object, props, names) {
+  let obj = {}
+  props.forEach((prop, i) => {
+    if(object[prop]) {
+      obj[names[i]] = object[prop]
+    }
+  })
+  return obj
 }
 
 
@@ -78,5 +116,9 @@ module.exports = {
   wasReceivedAllProps, 
   hasEmptyFields,
   wasReceivedProps,
-  hasSameValue
+  areEquals,
+  getPropsOfQuery,
+  removeEmpty,
+  extractProperties,
+  extractPropsAndRename
 }

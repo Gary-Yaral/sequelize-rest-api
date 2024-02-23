@@ -29,7 +29,7 @@ const TableType = db.define(
 
 TableType.sync()
   .then(() => {
-    console.log('ChairType table has been synchronized')
+    console.log('Table table has been synchronized')
   })
   .catch((err) => {
     console.log(err)

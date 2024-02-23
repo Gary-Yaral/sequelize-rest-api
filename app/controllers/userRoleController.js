@@ -193,7 +193,8 @@ async function findOne(req, res) {
           model: User,
           attributes: { exclude: ['password'] },
         },
-        Role
+        Role,
+        UserStatus
       ],
       where: {
         userId: id
