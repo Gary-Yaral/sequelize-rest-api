@@ -2,27 +2,11 @@ const sequelize = require('../database/config')
 const { Op } = require('sequelize')
 const ChairType = require('../models/chairTypeModel')
 const { deteleImage } = require('../utils/deleteFile')
-const { wasReceivedAllProps, hasEmptyFields, wasReceivedProps } = require('../utils/propsValidator')
-
-const requiredProps = ['type', 'price', 'description', 'image']
+const { wasReceivedAllProps, hasEmptyFields } = require('../utils/propsValidator')
 
 async function add(req, res) {
+  const transaction = await sequelize.transaction()
   try {
-    // Iniciamos la transacción
-    const transaction = await sequelize.transaction()
-    // Varificamos que lleguen todas las prpiedades
-    if(!wasReceivedAllProps(req, requiredProps)){
-      return res.json({ 
-        error: 'No se han recibido todos los campos', 
-      })
-    }
-    // Verificamos que no haya propiedades en blanco
-    if(hasEmptyFields(req) > 0){
-      return res.json({ 
-        error: 'Se han recibido campos vacios', 
-      })
-    }
-    // Insertamos el registro en el modelo
     const user = await ChairType.create(req.body, {transaction})
     // Si todo salio bien se guardan cambios en la base de datos
     if(user.id) {
@@ -48,76 +32,53 @@ async function add(req, res) {
       message: 'No se pudo registrar el tipo de silla'
     })
   } catch (error) {
-    res.json({message: 'Error al crear tipo de silla', error})
+    // eliminamos la imagen que guardamos
+    const imageWasDeleted = deteleImage(req.body.image) 
+    // Si no se pudo eliminar la imagen que guardamos devolvemos error
+    if(imageWasDeleted.error) {
+      await transaction.rollback()
+      return res.status(500).json({ error:imageWasDeleted.message })
+    }
+    res.status(500).json({error})
   }
 }
 
 async function update(req, res) {
-  try {
-    // Creamos la transacción
-    const transaction = await sequelize.transaction()
-    // Verificams que nos enviaron todas las propiedades y el id
-    if(!wasReceivedProps(req, requiredProps) || !req.params.id){
-      return res.json({ 
-        error: 'No se han recibido todos los campos', 
-      })
-    }
-
-    // Buscamos el tipo de silla
-    const found = await ChairType.findOne({
-      where: {
-        id: req.params.id
-      }
-    })
-    // Si no existe el tipo de silla retornamos error
-    if(!found) {
-      // Eliminamos la imagen que guardamos al principio
-      const deleted = deteleImage(req.body.image)
-      if(deleted.error) {
-        return res.json({error : deleted.message })
-      } else {
-        return res.json({
-          result: false,
-          message: 'No existe ese tipo de silla'})
-      }
-    }    
+  const transaction = await sequelize.transaction()
+  try { 
     // Si no se envio una imagen la quitamos del body para que no actualice la imagen
-    if(req.body.image === '' | !req.body.image) {
+    if(req.body.image === '' || !req.body.image) {
       delete req.body.image
     }
     // Actualizamos los datos
-    const [updatedRows] = await ChairType.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Devolvemos error en caso de que no hubo cambios
-    if(updatedRows === 0) {
-      // Si no se pudo guardar
-      await transaction.rollback()
-      return res.json({
-        result: false,
-        message: 'No se realizó cambios. Los datos recibidos son similares a los registrados'
-      })
-    }
-
+    await ChairType.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Si todo ha ido bien guardamos los cambios en la bd
-    await transaction.commit() 
     // Eliminamos la imagen anterior usando su path
-    if(req.body.image) {
-      const imageName = found.image 
-      const imageWasDeleted = deteleImage(imageName)  
+    if(req.body.currentImage) {
+      const imageName = req.body.currentImage
+      const hasError = deteleImage(imageName)  
       // Si al eliminar retorna algo es porque hay error
-      if(imageWasDeleted) {
-        return res.json({
-          error: imageWasDeleted.message
+      if(hasError) {
+        return res.status(500).json({
+          error: hasError
         })
       }
     }
     // Retornamos el mensaje de que todo ha ido bien
+    await transaction.commit() 
     return res.json({
       result: true,
       message: 'Tipo de silla actualizado correctamente'
     })
-   
+    
   } catch (error) {
-    res.status(500).json({message: 'Error al actualizar tipo de silla', error})
+    // Eliminamos la imagen que guardamos al principio
+    await transaction.rollback()
+    const hasError = deteleImage(req.body.image)
+    if(hasError) {
+      return res.status(300).json({error : hasError })
+    }  
+    return res.status(500).json({error})
   }
 }
 

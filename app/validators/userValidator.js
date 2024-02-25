@@ -43,7 +43,6 @@ const validatorUser = [
     .custom((value) => hardTextRegex.test(value)).withMessage(customMessages['hardText.invalid'])
     .customSanitizer(async( value, { req }) => {
       await findRepeatedUser(req, { username: req.body.username })
-      console.log(req.body)
       return value
     })
     .custom((value, {req}) => !req.repeatedUser).withMessage(customMessages['username.repeated']),
