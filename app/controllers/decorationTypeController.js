@@ -1,13 +1,14 @@
 const sequelize = require('../database/config')
 const { Op } = require('sequelize')
 const { deteleImage } = require('../utils/deleteFile')
-const TableType = require('../models/tableTypeModel')
 const { getErrorFormat } = require('../utils/errorsFormat')
+const DecorationType = require('../models/decorationTypeModel')
+
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    const user = await TableType.create(req.body, {transaction})
+    const user = await DecorationType.create(req.body, {transaction})
     // Si todo salio bien se guardan cambios en la base de datos
     if(user.id) {
       await transaction.commit() 
@@ -52,7 +53,7 @@ async function update(req, res) {
       delete req.body.image
     }
     // Actualizamos los datos
-    await TableType.update(req.body, {where: {id: req.params.id}}, {transaction})
+    await DecorationType.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
     if(req.body.currentImage) {
       const imageWasDeleted = deteleImage(req.body.currentImage)  
@@ -87,7 +88,7 @@ async function remove(req, res) {
     //Extraemos el id de registro encontrado
     const { id, image } = req.body.found
     // si existe lo eliminamos
-    const affectedRows = await TableType.destroy({ where: { id }, transaction})
+    const affectedRows = await DecorationType.destroy({ where: { id }, transaction})
     // Si no lo encontramos devolvemos meensaje de error
     if(affectedRows === 0) {
       await transaction.rollback()
@@ -125,7 +126,7 @@ async function getAll(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
-    const data = await TableType.findAndCountAll({
+    const data = await DecorationType.findAndCountAll({
       limit: perPage,
       offset: (currentPage - 1) * perPage
     })
@@ -159,7 +160,7 @@ async function filterAndPaginate(req, res) {
       }
     }
     // Realizar la consulta con paginación y filtros
-    const data = await TableType.findAndCountAll(filterCondition)
+    const data = await DecorationType.findAndCountAll(filterCondition)
     return res.json({
       result: true,
       data

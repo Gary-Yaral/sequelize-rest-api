@@ -1,5 +1,5 @@
 
-const tableTypeController = require('../controllers/tableTypeController')
+const decorationTypeController = require('../controllers/decorationTypeController')
 const { validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 const multer = require('multer')
@@ -7,7 +7,7 @@ const path = require('path')
 const { newImageName } = require('../utils/saveImage')
 const { typeValidator } = require('../validators/commonValidator')
 const { findId } = require('../middlewares/findId')
-const TableType = require('../models/tableTypeModel')
+const DecorationType = require('../models/decorationTypeModel')
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, './app/images/')
@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
       req.image = ''
     }
     const ext = path.extname(file.originalname)
-    const fileName = newImageName('Table-Type', ext).filename
+    const fileName = newImageName('Decoration-Type', ext).filename
     req.body.image = fileName
     cb(null, fileName)
   }
@@ -25,10 +25,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
-router.get('/', validateToken, tableTypeController.getAll)
-router.post('/', validateToken, upload.single('image'), typeValidator, tableTypeController.add)
-router.post('/filter', validateToken, tableTypeController.filterAndPaginate)
-router.put('/:id', validateToken, findId(TableType), upload.single('image'), typeValidator, tableTypeController.update)
-router.delete('/:id', validateToken, findId(TableType), tableTypeController.remove)
+router.get('/', validateToken, decorationTypeController.getAll)
+router.post('/', validateToken, upload.single('image'), typeValidator, decorationTypeController.add)
+router.post('/filter', validateToken, decorationTypeController.filterAndPaginate)
+router.put('/:id', validateToken, findId(DecorationType), upload.single('image'), typeValidator, decorationTypeController.update)
+router.delete('/:id', validateToken, findId(DecorationType), decorationTypeController.remove)
 
 module.exports = { router }

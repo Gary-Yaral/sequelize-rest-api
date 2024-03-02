@@ -5,7 +5,9 @@ const router = require('express').Router()
 const multer = require('multer')
 const path = require('path')
 const { newImageName } = require('../utils/saveImage')
-const { validatorChairType } = require('../validators/chairTypeValidator')
+const { findId } = require('../middlewares/findId')
+const { typeValidator } = require('../validators/commonValidator')
+const ChairType = require('../models/chairTypeModel')
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, './app/images/')
@@ -21,12 +23,12 @@ const storage = multer.diskStorage({
   }
 })
 
-const upload = multer({ storage: storage })
+const upload = multer({ storage })
 
 router.get('/', validateToken, chairTypeController.getAll)
-router.post('/', validateToken, upload.single('image'), validatorChairType, chairTypeController.add)
-router.post('/filter', chairTypeController.filterAndPaginate)
-router.put('/:id', upload.single('image'), validatorChairType, chairTypeController.update)
-router.delete('/:id', chairTypeController.remove)
+router.post('/', validateToken, upload.single('image'), typeValidator, chairTypeController.add)
+router.post('/filter', validateToken, chairTypeController.filterAndPaginate)
+router.put('/:id', validateToken, findId(ChairType), upload.single('image'), typeValidator, chairTypeController.update)
+router.delete('/:id', validateToken, findId(ChairType), chairTypeController.remove)
 
 module.exports = { router}

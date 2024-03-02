@@ -1,8 +1,8 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
 
-const TableType = db.define(
-  'TableType',
+const DecorationType = db.define(
+  'DecorationType',
   {
     type:  {
       type: Sequelize.STRING,
@@ -22,17 +22,17 @@ const TableType = db.define(
     }
   },
   { 
-    tableName: 'table_type',
+    tableName: 'decoration_type',
     timestamps: false
   } 
 )
 
-TableType.sync()
+DecorationType.sync()
   .then(() => {
-    console.log('TableType table has been synchronized')
+    console.log('DecorationType table has been synchronized')
   })
   .catch((err) => {
     console.log(err)
   })
 
-module.exports = TableType
+module.exports = DecorationType

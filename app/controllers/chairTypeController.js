@@ -2,7 +2,7 @@ const sequelize = require('../database/config')
 const { Op } = require('sequelize')
 const ChairType = require('../models/chairTypeModel')
 const { deteleImage } = require('../utils/deleteFile')
-const { wasReceivedAllProps, hasEmptyFields } = require('../utils/propsValidator')
+const { getErrorFormat } = require('../utils/errorsFormat')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -13,33 +13,34 @@ async function add(req, res) {
       await transaction.commit() 
       return res.json({
         result: true,
-        message: 'Tipo de Silla registrado correctamente'
+        message: 'Registro agregado correctamente'
       })
     }
     // SI NO SE INSERTÓ EL REGISTRO
     // eliminamos la imagen que guardamos
     const imageWasDeleted = deteleImage(req.body.image) 
     // Si no se pudo eliminar la imagen que guardamos devolvemos error
-    if(imageWasDeleted.error) {
+    if(imageWasDeleted) {
       await transaction.rollback()
-      return res.json({ error:imageWasDeleted.message })
+      let errorName = 'image'
+      let errors = {...getErrorFormat(errorName, 'Error al eliminar imagen guardada', errorName) }
+      let errorKeys = [ errorName ]
+      return res.status(400).json({ errors, errorKeys })
     }
 
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
+    let errorKeys = [ errorName ]
+    
     // Una vez eliminada la imagen deshacemos los cambios y devolvemos error
     await transaction.rollback()
-    return res.json({
-      result: false,
-      message: 'No se pudo registrar el tipo de silla'
-    })
+    return res.status(400).json({ errors, errorKeys })
   } catch (error) {
-    // eliminamos la imagen que guardamos
-    const imageWasDeleted = deteleImage(req.body.image) 
-    // Si no se pudo eliminar la imagen que guardamos devolvemos error
-    if(imageWasDeleted.error) {
-      await transaction.rollback()
-      return res.status(500).json({ error:imageWasDeleted.message })
-    }
-    res.status(500).json({error})
+    await transaction.rollback()
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
@@ -52,88 +53,71 @@ async function update(req, res) {
     }
     // Actualizamos los datos
     await ChairType.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Si todo ha ido bien guardamos los cambios en la bd
     // Eliminamos la imagen anterior usando su path
     if(req.body.currentImage) {
-      const imageName = req.body.currentImage
-      const hasError = deteleImage(imageName)  
-      // Si al eliminar retorna algo es porque hay error
-      if(hasError) {
-        return res.status(500).json({
-          error: hasError
-        })
+      const imageWasDeleted = deteleImage(req.body.currentImage)  
+      // Si no se pudo eliminar la imagen que guardamos devolvemos error
+      if(imageWasDeleted) {
+        await transaction.rollback()
+        let errorName = 'image'
+        let errors = {...getErrorFormat(errorName, 'Error al eliminar la imagen guardada', errorName) }
+        let errorKeys = [ errorName ]
+        return res.status(400).json({ errors, errorKeys })
       }
     }
     // Retornamos el mensaje de que todo ha ido bien
     await transaction.commit() 
     return res.json({
       result: true,
-      message: 'Tipo de silla actualizado correctamente'
+      message: 'Registro actualizado correctamente'
     })
     
   } catch (error) {
-    // Eliminamos la imagen que guardamos al principio
     await transaction.rollback()
-    const hasError = deteleImage(req.body.image)
-    if(hasError) {
-      return res.status(300).json({error : hasError })
-    }  
-    return res.status(500).json({error})
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al actualizar registro', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
 async function remove(req, res) {
+  const transaction = await sequelize.transaction()
   try {
-    const transaction = await sequelize.transaction()
-    if(!req.params.id){
-      return res.json({ 
-        error: 'No se han recibido todos los campos', 
-      })
-    }
-
-    // Extraemos los campos
-    if(req.params.id === '') {
-      return res.json({ 
-        error: 'No se ha enviado el id del registro', 
-      })
-    }
-    // Buscamos el registro a eliminar
-    const toDelete = await ChairType.findByPk(req.params.id, {transaction})
-    // Si no lo encontramos devolvemos mensaje de error
-    if(!toDelete) {
-      return res.json({
-        result: false,
-        message: 'Tipo de silla no existe en el sistema'
-      })
-    }
     //Extraemos el id de registro encontrado
-    const { id, image } = toDelete.dataValues
+    const { id, image } = req.body.found
     // si existe lo eliminamos
     const affectedRows = await ChairType.destroy({ where: { id }, transaction})
     // Si no lo encontramos devolvemos meensaje de error
     if(affectedRows === 0) {
       await transaction.rollback()
-      return res.json({
-        result: false,
-        message: 'Tipo de silla no se pudo eliminar del sistema'
-      })
+      let errorName = 'request'
+      let errors = {...getErrorFormat(errorName, 'Error al eliminar registro', errorName) }
+      let errorKeys = [ errorName ]
+      return res.status(400).json({ errors, errorKeys })
     }
     // Si todo ha ido bien
     const imageWasDeleted = deteleImage(image)
     if(imageWasDeleted) {
-      return res.json({
-        error: imageWasDeleted.error
-      })
+      await transaction.rollback()
+      let errorName = 'image'
+      let errors = {...getErrorFormat(errorName, 'Error eliminar el registro', errorName) }
+      let errorKeys = [ errorName ]
+      return res.status(400).json({ errors, errorKeys })
     }
     // Guardamos los cambios en la base de datos
     await transaction.commit()
     // Retornamos mensjae de que todo ha ido bien
     return res.json({
       result: true,
-      message: 'Tipo de silla eliminado correctamente'
+      message: 'Registro eliminado correctamente'
     })
   } catch (error) {
-    res.json({ error })
+    await transaction.rollback()
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al eliminar el registro', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
@@ -156,17 +140,6 @@ async function getAll(req, res) {
 
 async function filterAndPaginate(req, res) {
   try {
-    if(!wasReceivedAllProps(req, ['currentPage', 'perPage', 'filter'])){
-      return res.json({ 
-        error: 'No se han recibido todos los campos', 
-      })
-    }
-    // Verificamos que no haya propiedades en blanco
-    if(hasEmptyFields(req) > 0){
-      return res.json({ 
-        error: 'Se han recibido campos vacios', 
-      })
-    }
     const filter = req.body.filter
     // Parseamos los valores a números
     const currentPage = parseInt(req.body.currentPage)

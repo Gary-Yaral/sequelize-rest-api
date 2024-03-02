@@ -10,6 +10,8 @@ const routes = {
   'userAdmin': 'admin',
   'userRole': 'roles',
   'chairType': 'chairs',
+  'tableType': 'tables',
+  'decorationType': 'decorations',
   'images': 'images',
   'token': 'token',
   'userStatus': 'status',
