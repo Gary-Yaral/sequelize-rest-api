@@ -50,6 +50,26 @@ CREATE TABLE `decoration_type` (
 
 insert  into `decoration_type`(`id`,`type`,`price`,`description`,`image`) values (1,'Luces azules',2,'Luces azules con globos azules y marco de globos','Decoration-Type-1709335456916-929e4b92-f0f6-44d9-88d4-e3c6fd494f6b..jpg');
 
+/*Table structure for table `dish` */
+
+DROP TABLE IF EXISTS `dish`;
+
+CREATE TABLE `dish` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `typeId` int(255) NOT NULL,
+  `price` double NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `image` varchar(500) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `type` (`typeId`),
+  CONSTRAINT `dish_ibfk_1` FOREIGN KEY (`typeId`) REFERENCES `dish_type` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `dish` */
+
+insert  into `dish`(`id`,`name`,`typeId`,`price`,`description`,`image`) values (1,'Arroz marinero',1,2.55,'Arroz marinero','Dish-1709420194268-50579a59-3623-45eb-899e-78606b8657ec..jpg');
+
 /*Table structure for table `dish_type` */
 
 DROP TABLE IF EXISTS `dish_type`;
@@ -58,11 +78,31 @@ CREATE TABLE `dish_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `dish_type` */
 
-insert  into `dish_type`(`id`,`type`) values (1,'Sopita');
+insert  into `dish_type`(`id`,`type`) values (1,'Sopa'),(3,'Ensalada');
+
+/*Table structure for table `drink` */
+
+DROP TABLE IF EXISTS `drink`;
+
+CREATE TABLE `drink` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `typeId` int(255) NOT NULL,
+  `price` double NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `image` varchar(500) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `type` (`typeId`),
+  CONSTRAINT `drink_ibfk_1` FOREIGN KEY (`typeId`) REFERENCES `drink_type` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `drink` */
+
+insert  into `drink`(`id`,`name`,`typeId`,`price`,`description`,`image`) values (2,'Pepsi',2,1.25,'Cola pepsi de 1 Litro','Drink-1709416985955-1e7d4327-c4ca-46f0-a9cf-3ff5fffabe7d..jpg'),(3,'Big Cola 3L',2,1.5,'Big Cola de 3 Litros','Drink-1709417295287-d0e3d814-cf24-43d7-8a91-6429135e5cf0..jpg');
 
 /*Table structure for table `drink_type` */
 
@@ -150,6 +190,22 @@ CREATE TABLE `role` (
 
 insert  into `role`(`id`,`role`) values (2,'ADMINISTRADOR'),(1,'SUPER ADMIN'),(3,'USUARIO');
 
+/*Table structure for table `room` */
+
+DROP TABLE IF EXISTS `room`;
+
+CREATE TABLE `room` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `address` varchar(255) NOT NULL,
+  `telephone` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `price` double NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `room` */
+
 /*Table structure for table `table_type` */
 
 DROP TABLE IF EXISTS `table_type`;
@@ -187,7 +243,7 @@ CREATE TABLE `user` (
 
 /*Data for the table `user` */
 
-insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','DSGDS GDSGS','0934464637','nerd@gmail.com','F_Nerd2023','$2b$10$28EWTo4H40OhnGJq8nfefOR4DZ0L6yxjbTHtv2K6O6Ju.lBsXJEGe'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','andresviteri2024@gmail.com','Andres_2024','$2b$10$FYds4LtmJaU2ohd4xSLKIOhXfcFaIS7NGvktqKMFGLdMpPoYqxrdK'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','miguelangel@gmail.com','Miusuario_2026','$2b$10$zGpaNABv19HpMnxteiZ4Z./wKNSkLQW/0RX89nJUUtLElWW/xBIQy');
+insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','GAVILANEZ MORA','0934464637','nerd@gmail.com','F_Nerd2023','$2b$10$28EWTo4H40OhnGJq8nfefOR4DZ0L6yxjbTHtv2K6O6Ju.lBsXJEGe'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','andresviteri2024@gmail.com','Andres_2024','$2b$10$FYds4LtmJaU2ohd4xSLKIOhXfcFaIS7NGvktqKMFGLdMpPoYqxrdK'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','miguelangel@gmail.com','Miusuario_2026','$2b$10$zGpaNABv19HpMnxteiZ4Z./wKNSkLQW/0RX89nJUUtLElWW/xBIQy');
 
 /*Table structure for table `user_roles` */
 
