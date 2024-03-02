@@ -6,7 +6,7 @@ const DishType = db.define(
   {
     type: {
       type: Sequelize.STRING,
-      require: true,
+      allowNull: false
     },
   },
   { 

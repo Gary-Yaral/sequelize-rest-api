@@ -12,6 +12,8 @@ const routes = {
   'chairType': 'chairs',
   'tableType': 'tables',
   'drinkType': 'drink-types',
+  'drink': 'drinks',
+  'dish': 'dishes',
   'dishType': 'dish-types',
   'decorationType': 'decorations',
   'images': 'images',

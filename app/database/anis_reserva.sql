@@ -50,18 +50,19 @@ CREATE TABLE `decoration_type` (
 
 insert  into `decoration_type`(`id`,`type`,`price`,`description`,`image`) values (1,'Luces azules',2,'Luces azules con globos azules y marco de globos','Decoration-Type-1709335456916-929e4b92-f0f6-44d9-88d4-e3c6fd494f6b..jpg');
 
-/*Table structure for table `dishes_type` */
+/*Table structure for table `dish_type` */
 
-DROP TABLE IF EXISTS `dishes_type`;
+DROP TABLE IF EXISTS `dish_type`;
 
-CREATE TABLE `dishes_type` (
+CREATE TABLE `dish_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` varchar(255) NOT NULL,
-  `description` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*Data for the table `dishes_type` */
+/*Data for the table `dish_type` */
+
+insert  into `dish_type`(`id`,`type`) values (1,'Sopita');
 
 /*Table structure for table `drink_type` */
 
@@ -71,9 +72,11 @@ CREATE TABLE `drink_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `drink_type` */
+
+insert  into `drink_type`(`id`,`type`) values (1,'Cervezas'),(2,'Cola'),(4,'Vino');
 
 /*Table structure for table `payment` */
 

@@ -23,6 +23,30 @@ const typeValidator = [
   }
 ]
 
+const typeValidator2 = [
+  check('name')
+    .exists().withMessage(customMessages['required'])
+    .notEmpty().withMessage(customMessages['empty'])
+    .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),
+  check('typeId')
+    .exists().withMessage(customMessages['required'])
+    .notEmpty().withMessage(customMessages['empty'])
+    .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),
+  check('price')
+    .exists().withMessage(customMessages['required'])
+    .notEmpty().withMessage(customMessages['empty'])
+    .isNumeric().withMessage(customMessages['price']),
+  check('description')
+    .exists().withMessage(customMessages['required'])
+    .notEmpty().withMessage(customMessages['empty'])
+    .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),
+  check('image')
+    .optional(), 
+  async (req, res, next) => {
+    validateRequest(req, res, next)
+  }
+]
+
 const propTypeValidator = [
   check('type')
     .exists().withMessage(customMessages['required'])
@@ -36,6 +60,7 @@ const propTypeValidator = [
 
 module.exports = {
   typeValidator,
+  typeValidator2,
   propTypeValidator
 }
 
