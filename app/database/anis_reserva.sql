@@ -27,11 +27,28 @@ CREATE TABLE `chair_type` (
   `description` varchar(255) NOT NULL,
   `image` varchar(500) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=75 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `chair_type` */
 
-insert  into `chair_type`(`id`,`type`,`price`,`description`,`image`) values (65,'sdfdf',3,'sddg','Chair-Type-1707497213253-75958754-74d3-4d67-96dd-0af6e3bfa06f..png'),(66,'sdgds',34,'sasf','Chair-Type-1707497720566-342976a3-37d3-4d06-a286-f7184cb099b3..jpg'),(67,'dgsg',334,'dsfsdf','Chair-Type-1707499958628-66e14a1b-054d-48c3-bb2e-9d61ba5e7a85..jpg'),(68,'sdgg',3,'dsg','Chair-Type-1707500161023-5c0f398a-b8d9-4ed9-9191-fd1b11d316b0..jpg'),(69,'dsdg',435,'ffsd','Chair-Type-1707500635940-b5615366-9906-408e-94e5-81cb7bc4e8a6..jpg'),(71,'sd Hola',32,'sdd','Chair-Type-1707756816787-cb24504c-d229-45d1-b846-d5264563494c..jpg');
+insert  into `chair_type`(`id`,`type`,`price`,`description`,`image`) values (66,'Silla con cuadritos',3,'sasf','Chair-Type-1709330339744-97d28459-cb73-4726-ad6e-bebd73f78e20..png'),(68,'sdgg',3,'dsg','Chair-Type-1707500161023-5c0f398a-b8d9-4ed9-9191-fd1b11d316b0..jpg'),(69,'dsdg',435,'ffsd','Chair-Type-1707500635940-b5615366-9906-408e-94e5-81cb7bc4e8a6..jpg'),(71,'sd Hola',32,'sdd','Chair-Type-1707756816787-cb24504c-d229-45d1-b846-d5264563494c..jpg');
+
+/*Table structure for table `decoration_type` */
+
+DROP TABLE IF EXISTS `decoration_type`;
+
+CREATE TABLE `decoration_type` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) NOT NULL,
+  `price` double NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `image` varchar(500) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `decoration_type` */
+
+insert  into `decoration_type`(`id`,`type`,`price`,`description`,`image`) values (1,'Luces azules',2,'Luces azules con globos azules y marco de globos','Decoration-Type-1709335456916-929e4b92-f0f6-44d9-88d4-e3c6fd494f6b..jpg');
 
 /*Table structure for table `dishes_type` */
 
@@ -53,7 +70,6 @@ DROP TABLE IF EXISTS `drink_type`;
 CREATE TABLE `drink_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` varchar(255) NOT NULL,
-  `description` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -142,9 +158,11 @@ CREATE TABLE `table_type` (
   `description` varchar(255) NOT NULL,
   `image` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `table_type` */
+
+insert  into `table_type`(`id`,`type`,`price`,`description`,`image`) values (2,'Mesa redonda',1.5,'Mesa redonda para 4 presonas','Table-Type-1709331123793-4db99338-f109-43ad-86da-5e85633af6d9..jpg');
 
 /*Table structure for table `user` */
 
@@ -162,11 +180,11 @@ CREATE TABLE `user` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `dni` (`dni`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `user` */
 
-insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'0000000000','Fabricio Alfredo','Guevara Flores','0944664343','fabricioguevara@gmail.com','F_Nerd2023','$2b$10$3u6Hjt2ekjh/q25Pj08vOOUGy7EomnCAPXDqrrv6geDlv/ZCIgS9a');
+insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','DSGDS GDSGS','0934464637','nerd@gmail.com','F_Nerd2023','$2b$10$28EWTo4H40OhnGJq8nfefOR4DZ0L6yxjbTHtv2K6O6Ju.lBsXJEGe'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','andresviteri2024@gmail.com','Andres_2024','$2b$10$FYds4LtmJaU2ohd4xSLKIOhXfcFaIS7NGvktqKMFGLdMpPoYqxrdK'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','miguelangel@gmail.com','Miusuario_2026','$2b$10$zGpaNABv19HpMnxteiZ4Z./wKNSkLQW/0RX89nJUUtLElWW/xBIQy');
 
 /*Table structure for table `user_roles` */
 
@@ -184,11 +202,11 @@ CREATE TABLE `user_roles` (
   CONSTRAINT `user_roles_ibfk_1` FOREIGN KEY (`roleId`) REFERENCES `role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `user_roles_ibfk_2` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `user_roles_ibfk_3` FOREIGN KEY (`statusId`) REFERENCES `user_status` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `user_roles` */
 
-insert  into `user_roles`(`id`,`roleId`,`userId`,`statusId`) values (10,1,39,1);
+insert  into `user_roles`(`id`,`roleId`,`userId`,`statusId`) values (10,1,39,1),(16,3,50,1),(18,2,58,1);
 
 /*Table structure for table `user_status` */
 

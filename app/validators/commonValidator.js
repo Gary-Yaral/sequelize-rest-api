@@ -23,8 +23,19 @@ const typeValidator = [
   }
 ]
 
+const propTypeValidator = [
+  check('type')
+    .exists().withMessage(customMessages['required'])
+    .notEmpty().withMessage(customMessages['empty'])
+    .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),
+  async (req, res, next) => {
+    validateRequest(req, res, next)
+  }
+]
+
 
 module.exports = {
-  typeValidator
+  typeValidator,
+  propTypeValidator
 }
 

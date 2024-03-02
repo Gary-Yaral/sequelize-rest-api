@@ -2,7 +2,7 @@ const userRolesController = require('../controllers/userRoleController')
 const {validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 
-router.get('/', validateToken, userRolesController.getAll)
+router.get('/', validateToken, userRolesController.paginate)
 router.post('/filter', validateToken, userRolesController.filterAndPaginate)
 router.get('/get-supers', validateToken, userRolesController.getOnlySuperAdmins)
 router.get('/get-admins', validateToken, userRolesController.getOnlyAdmins)

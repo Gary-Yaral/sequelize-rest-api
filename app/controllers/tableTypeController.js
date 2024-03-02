@@ -121,7 +121,7 @@ async function remove(req, res) {
   }
 }
 
-async function getAll(req, res) {
+async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
@@ -134,7 +134,10 @@ async function getAll(req, res) {
       data
     })
   } catch (error) {
-    res.json({error})
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
@@ -165,7 +168,10 @@ async function filterAndPaginate(req, res) {
       data
     }) 
   } catch(error) {
-    res.json({error})
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
@@ -173,6 +179,6 @@ module.exports = {
   add,
   update,
   remove,
-  getAll, 
+  paginate, 
   filterAndPaginate
 }

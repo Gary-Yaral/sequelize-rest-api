@@ -1,14 +1,13 @@
 const sequelize = require('../database/config')
 const { Op } = require('sequelize')
-const { deteleImage } = require('../utils/deleteFile')
 const { getErrorFormat } = require('../utils/errorsFormat')
-const DecorationType = require('../models/decorationTypeModel')
+const DishType = require('../models/dishTypeModel')
 
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    const user = await DecorationType.create(req.body, {transaction})
+    const user = await DishType.create(req.body, {transaction})
     // Si todo salio bien se guardan cambios en la base de datos
     if(user.id) {
       await transaction.commit() 
@@ -18,23 +17,10 @@ async function add(req, res) {
       })
     }
     // SI NO SE INSERTÓ EL REGISTRO
-    // eliminamos la imagen que guardamos
-    const imageWasDeleted = deteleImage(req.body.image) 
-    // Si no se pudo eliminar la imagen que guardamos devolvemos error
-    if(imageWasDeleted) {
-      await transaction.rollback()
-      let errorName = 'image'
-      let errors = {...getErrorFormat(errorName, 'Error al eliminar imagen guardada', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
-    }
-
+    await transaction.rollback()
     let errorName = 'request'
     let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
-    let errorKeys = [ errorName ]
-    
-    // Una vez eliminada la imagen deshacemos los cambios y devolvemos error
-    await transaction.rollback()
+    let errorKeys = [ errorName ]   
     return res.status(400).json({ errors, errorKeys })
   } catch (error) {
     await transaction.rollback()
@@ -48,24 +34,10 @@ async function add(req, res) {
 async function update(req, res) {
   const transaction = await sequelize.transaction()
   try { 
-    // Si no se envio una imagen la quitamos del body para que no actualice la imagen
-    if(req.body.image === '' || !req.body.image) {
-      delete req.body.image
-    }
+    //Extraemos el id de registro encontrado
+    const { id } = req.body.found
     // Actualizamos los datos
-    await DecorationType.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Eliminamos la imagen anterior usando su path
-    if(req.body.currentImage) {
-      const imageWasDeleted = deteleImage(req.body.currentImage)  
-      // Si no se pudo eliminar la imagen que guardamos devolvemos error
-      if(imageWasDeleted) {
-        await transaction.rollback()
-        let errorName = 'image'
-        let errors = {...getErrorFormat(errorName, 'Error al eliminar la imagen guardada', errorName) }
-        let errorKeys = [ errorName ]
-        return res.status(400).json({ errors, errorKeys })
-      }
-    }
+    await DishType.update(req.body, {where: {id}}, {transaction})
     // Retornamos el mensaje de que todo ha ido bien
     await transaction.commit() 
     return res.json({
@@ -86,26 +58,9 @@ async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
     //Extraemos el id de registro encontrado
-    const { id, image } = req.body.found
+    const { id } = req.body.found
     // si existe lo eliminamos
-    const affectedRows = await DecorationType.destroy({ where: { id }, transaction})
-    // Si no lo encontramos devolvemos meensaje de error
-    if(affectedRows === 0) {
-      await transaction.rollback()
-      let errorName = 'request'
-      let errors = {...getErrorFormat(errorName, 'Error al eliminar registro', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
-    }
-    // Si todo ha ido bien
-    const imageWasDeleted = deteleImage(image)
-    if(imageWasDeleted) {
-      await transaction.rollback()
-      let errorName = 'image'
-      let errors = {...getErrorFormat(errorName, 'Error eliminar el registro', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
-    }
+    await DishType.destroy({ where: { id }, transaction})
     // Guardamos los cambios en la base de datos
     await transaction.commit()
     // Retornamos mensjae de que todo ha ido bien
@@ -126,7 +81,7 @@ async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
-    const data = await DecorationType.findAndCountAll({
+    const data = await DishType.findAndCountAll({
       limit: perPage,
       offset: (currentPage - 1) * perPage
     })
@@ -156,14 +111,12 @@ async function filterAndPaginate(req, res) {
       raw: true,
       where: {
         [Op.or]: [
-          { type: { [Op.like]: `%${filter}%` } },
-          { price: { [Op.eq]: filter } },
-          { description: { [Op.like]: `%${filter}%` } }
+          { type: { [Op.like]: `%${filter}%` } }
         ]
       }
     }
     // Realizar la consulta con paginación y filtros
-    const data = await DecorationType.findAndCountAll(filterCondition)
+    const data = await DishType.findAndCountAll(filterCondition)
     return res.json({
       result: true,
       data
@@ -176,10 +129,26 @@ async function filterAndPaginate(req, res) {
   }
 }
 
+async function getAll(req, res) {
+  try {
+    const data = await DishType.findAll()
+    return res.json({
+      result: true,
+      data
+    })
+  } catch (error) {
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
+  }
+}
+
 module.exports = {
   add,
   update,
   remove,
-  paginate, 
-  filterAndPaginate
+  getAll, 
+  filterAndPaginate,
+  paginate
 }

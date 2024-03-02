@@ -1,6 +1,7 @@
 const dbConstants = require('../constants/db_constants')
 const Role = require('../models/roleModel')
 const { Op } = require('sequelize')
+const { getErrorFormat } = require('../utils/errorsFormat')
 
 async function getAll(req, res) {
   try {
@@ -27,8 +28,11 @@ async function getAll(req, res) {
     return res.json({
       error: 'No se ha podido obtener lista de roles'
     })
-  } catch (error) {
-    return res.json({error})
+  } catch (error) { 
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 

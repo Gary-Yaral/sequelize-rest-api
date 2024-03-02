@@ -6,6 +6,7 @@ const { validateHash } = require('../utils/bcrypt')
 const { createToken } = require('../utils/jwt')
 const { Op } = require('sequelize')
 const UserStatus = require('../models/userStatusModel')
+const { getErrorFormat } = require('../utils/errorsFormat')
 
 async function filterAndPaginate(req, res) {
   try {
@@ -59,11 +60,14 @@ async function filterAndPaginate(req, res) {
       data
     })
   } catch(error) {
-    res.json({error})
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
-async function getAll(req, res) {
+async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
@@ -101,7 +105,10 @@ async function getAll(req, res) {
       data
     })
   } catch (error) {
-    res.json({error})
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 
@@ -314,6 +321,6 @@ module.exports = {
   getAuth,
   findOne, 
   getUsers,
-  getAll,
+  paginate,
   filterAndPaginate
 }

@@ -3,6 +3,7 @@
 const Role = require('../models/roleModel')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
+const { getErrorFormat } = require('../utils/errorsFormat')
 const { createToken } = require('../utils/jwt')
 
 async function refresh(req, res) {
@@ -31,7 +32,10 @@ async function refresh(req, res) {
     })
     return res.json({token})
   } catch (error) {
-    res.json({ error: error.message })
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
   }
 }
 

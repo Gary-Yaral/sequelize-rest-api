@@ -11,6 +11,8 @@ const routes = {
   'userRole': 'roles',
   'chairType': 'chairs',
   'tableType': 'tables',
+  'drinkType': 'drink-types',
+  'dishType': 'dish-types',
   'decorationType': 'decorations',
   'images': 'images',
   'token': 'token',
