@@ -25,6 +25,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
+router.get('/list', validateToken, tableTypeController.getAll)
 router.get('/', validateToken, tableTypeController.paginate)
 router.post('/', validateToken, upload.single('image'), typeValidator, tableTypeController.add)
 router.post('/filter', validateToken, tableTypeController.filterAndPaginate)

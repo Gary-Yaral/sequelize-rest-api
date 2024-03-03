@@ -1,14 +1,13 @@
 const sequelize = require('../database/config')
 const { Op } = require('sequelize')
+const Room = require('../models/roomModel')
 const { deteleImage } = require('../utils/deleteFile')
 const { getErrorFormat } = require('../utils/errorsFormat')
-const DecorationType = require('../models/decorationTypeModel')
-
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    const user = await DecorationType.create(req.body, {transaction})
+    const user = await Room.create(req.body, {transaction})
     // Si todo salio bien se guardan cambios en la base de datos
     if(user.id) {
       await transaction.commit() 
@@ -53,7 +52,7 @@ async function update(req, res) {
       delete req.body.image
     }
     // Actualizamos los datos
-    await DecorationType.update(req.body, {where: {id: req.params.id}}, {transaction})
+    await Room.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
     if(req.body.currentImage) {
       const imageWasDeleted = deteleImage(req.body.currentImage)  
@@ -88,7 +87,7 @@ async function remove(req, res) {
     //Extraemos el id de registro encontrado
     const { id, image } = req.body.found
     // si existe lo eliminamos
-    const affectedRows = await DecorationType.destroy({ where: { id }, transaction})
+    const affectedRows = await Room.destroy({ where: { id }, transaction})
     // Si no lo encontramos devolvemos meensaje de error
     if(affectedRows === 0) {
       await transaction.rollback()
@@ -126,7 +125,7 @@ async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
-    const data = await DecorationType.findAndCountAll({
+    const data = await Room.findAndCountAll({
       limit: perPage,
       offset: (currentPage - 1) * perPage
     })
@@ -163,7 +162,7 @@ async function filterAndPaginate(req, res) {
       }
     }
     // Realizar la consulta con paginación y filtros
-    const data = await DecorationType.findAndCountAll(filterCondition)
+    const data = await Room.findAndCountAll(filterCondition)
     return res.json({
       result: true,
       data
@@ -176,26 +175,10 @@ async function filterAndPaginate(req, res) {
   }
 }
 
-async function getAll(req, res) {
-  try {
-    const data = await DecorationType.findAll()
-    return res.json({
-      result: true,
-      data
-    })
-  } catch (error) {
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
-  }
-}
-
 module.exports = {
   add,
   update,
   remove,
   paginate, 
-  filterAndPaginate,
-  getAll
+  filterAndPaginate
 }

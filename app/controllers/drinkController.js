@@ -180,10 +180,29 @@ async function filterAndPaginate(req, res) {
   }
 }
 
+async function getAll(req, res) {
+  try {
+    const data = await Drink.findAll({
+      include:[DrinkType],
+      raw: true
+    })
+    return res.json({
+      result: true,
+      data
+    })
+  } catch (error) {
+    let errorName = 'request'
+    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
+    let errorKeys = [errorName]
+    return res.status(400).json({ errors, errorKeys })
+  }
+}
+
 module.exports = {
   add,
   update,
   remove,
   paginate, 
-  filterAndPaginate
+  filterAndPaginate,
+  getAll
 }

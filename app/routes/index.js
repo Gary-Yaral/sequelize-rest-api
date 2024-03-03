@@ -14,6 +14,7 @@ const routes = {
   'drinkType': 'drink-types',
   'drink': 'drinks',
   'dish': 'dishes',
+  'room': 'rooms',
   'dishType': 'dish-types',
   'decorationType': 'decorations',
   'images': 'images',
