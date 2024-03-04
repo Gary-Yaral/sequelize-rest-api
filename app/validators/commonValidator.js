@@ -4,7 +4,7 @@ const { customMessages } = require('../utils/customMessages.js')
 const { textRegex, telephoneRegex, emailRegex } = require('../utils/regExp.js')
 
 const typeValidator = [
-  check('type')
+  check('name')
     .exists().withMessage(customMessages['required'])
     .notEmpty().withMessage(customMessages['empty'])
     .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),

@@ -4,7 +4,7 @@ const Sequelize = require('sequelize')
 const ChairType = db.define(
   'ChairType',
   {
-    type:  {
+    name:  {
       type: Sequelize.STRING,
       allowNull: false
     },

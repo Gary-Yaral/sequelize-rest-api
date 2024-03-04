@@ -4,7 +4,7 @@ const Sequelize = require('sequelize')
 const TableType = db.define(
   'TableType',
   {
-    type:  {
+    name:  {
       type: Sequelize.STRING,
       allowNull: false
     },

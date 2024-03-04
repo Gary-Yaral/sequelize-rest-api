@@ -4,7 +4,7 @@ const Sequelize = require('sequelize')
 const DecorationType = db.define(
   'DecorationType',
   {
-    type:  {
+    name:  {
       type: Sequelize.STRING,
       allowNull: false
     },
