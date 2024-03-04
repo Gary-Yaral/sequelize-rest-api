@@ -200,11 +200,14 @@ CREATE TABLE `room` (
   `address` varchar(255) NOT NULL,
   `telephone` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `price` double NOT NULL,
+  `rent` double NOT NULL,
+  `image` varchar(500) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `room` */
+
+insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`rent`,`image`) values (3,'Anis 1','Perales','0985535221','aniseventos@gmai.com',250,'Room-1709476039404-d720beaf-1496-4a7d-8d1c-31393366d7e7..jpg');
 
 /*Table structure for table `table_type` */
 
