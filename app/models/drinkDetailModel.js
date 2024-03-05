@@ -18,6 +18,14 @@ const DrinkDetail = db.define(
       type: Sequelize.INTEGER,
       allowNull: false
     },
+    price: {
+      type: Sequelize.DOUBLE,
+      allowNull: false
+    },
+    total: {
+      type: Sequelize.DOUBLE,
+      allowNull: false,
+    },
     packageId: {
       type: Sequelize.STRING,
       allowNull: false,

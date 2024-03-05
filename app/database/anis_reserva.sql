@@ -16,22 +16,64 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/`anis_reserva` /*!40100 DEFAULT CHARACTE
 
 USE `anis_reserva`;
 
+/*Table structure for table `chair_detail` */
+
+DROP TABLE IF EXISTS `chair_detail`;
+
+CREATE TABLE `chair_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `itemId` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `total` double NOT NULL,
+  `price` double NOT NULL,
+  `packageId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `chairId` (`itemId`),
+  KEY `packageId` (`packageId`),
+  CONSTRAINT `chair_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `chair_type` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `chair_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `chair_detail` */
+
+insert  into `chair_detail`(`id`,`itemId`,`quantity`,`total`,`price`,`packageId`) values (1,68,2,2,1,18),(2,68,1,1,1,20);
+
 /*Table structure for table `chair_type` */
 
 DROP TABLE IF EXISTS `chair_type`;
 
 CREATE TABLE `chair_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
-  `image` varchar(500) NOT NULL,
+  `image` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=75 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=76 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `chair_type` */
 
-insert  into `chair_type`(`id`,`type`,`price`,`description`,`image`) values (66,'Silla con cuadritos',3,'sasf','Chair-Type-1709330339744-97d28459-cb73-4726-ad6e-bebd73f78e20..png'),(68,'sdgg',3,'dsg','Chair-Type-1707500161023-5c0f398a-b8d9-4ed9-9191-fd1b11d316b0..jpg'),(69,'dsdg',435,'ffsd','Chair-Type-1707500635940-b5615366-9906-408e-94e5-81cb7bc4e8a6..jpg'),(71,'sd Hola',32,'sdd','Chair-Type-1707756816787-cb24504c-d229-45d1-b846-d5264563494c..jpg');
+insert  into `chair_type`(`id`,`name`,`price`,`description`,`image`) values (68,'Silla plastica 2',1,'Silla de plastico con espaldar de huequitos','Chair-Type-1709585192697-ba58290e-ad47-4464-a398-4b0df192d0e1..jpg'),(69,'Silla plastica 1',1,'Silla plastica marron espaldar sin huequitos','Chair-Type-1707500635940-b5615366-9906-408e-94e5-81cb7bc4e8a6..jpg'),(75,'Silla de metal',1.5,'Silla de metal color gris','Chair-Type-1709585132025-5bc395be-0dd2-4d52-8c16-09fa61e7f45f..jpg');
+
+/*Table structure for table `decoration_detail` */
+
+DROP TABLE IF EXISTS `decoration_detail`;
+
+CREATE TABLE `decoration_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `itemId` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `total` double NOT NULL,
+  `price` double NOT NULL,
+  `packageId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `chairId` (`itemId`),
+  KEY `packageId` (`packageId`),
+  CONSTRAINT `decoration_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `decoration_type` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `decoration_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `decoration_detail` */
 
 /*Table structure for table `decoration_type` */
 
@@ -39,16 +81,16 @@ DROP TABLE IF EXISTS `decoration_type`;
 
 CREATE TABLE `decoration_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
-  `image` varchar(500) NOT NULL,
+  `image` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `decoration_type` */
 
-insert  into `decoration_type`(`id`,`type`,`price`,`description`,`image`) values (1,'Luces azules',2,'Luces azules con globos azules y marco de globos','Decoration-Type-1709335456916-929e4b92-f0f6-44d9-88d4-e3c6fd494f6b..jpg');
+insert  into `decoration_type`(`id`,`name`,`price`,`description`,`image`) values (1,'Decoración 1',40,'Luces azules con globos azules y marco de globos','Decoration-Type-1709335456916-929e4b92-f0f6-44d9-88d4-e3c6fd494f6b..jpg');
 
 /*Table structure for table `dish` */
 
@@ -60,15 +102,38 @@ CREATE TABLE `dish` (
   `typeId` int(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
-  `image` varchar(500) NOT NULL,
+  `image` varchar(255) NOT NULL,
+  `itemId` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `type` (`typeId`),
-  CONSTRAINT `dish_ibfk_1` FOREIGN KEY (`typeId`) REFERENCES `dish_type` (`id`) ON UPDATE CASCADE
+  KEY `itemId` (`itemId`),
+  CONSTRAINT `dish_ibfk_5` FOREIGN KEY (`typeId`) REFERENCES `dish_type` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `dish_ibfk_6` FOREIGN KEY (`itemId`) REFERENCES `dish_detail` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `dish` */
 
-insert  into `dish`(`id`,`name`,`typeId`,`price`,`description`,`image`) values (1,'Arroz marinero',1,2.55,'Arroz marinero','Dish-1709420194268-50579a59-3623-45eb-899e-78606b8657ec..jpg');
+insert  into `dish`(`id`,`name`,`typeId`,`price`,`description`,`image`,`itemId`) values (1,'Arroz marinero',1,2.55,'Arroz marinero','Dish-1709420194268-50579a59-3623-45eb-899e-78606b8657ec..jpg',NULL);
+
+/*Table structure for table `dish_detail` */
+
+DROP TABLE IF EXISTS `dish_detail`;
+
+CREATE TABLE `dish_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `itemId` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `total` double NOT NULL,
+  `price` double NOT NULL,
+  `packageId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `chairId` (`itemId`),
+  KEY `packageId` (`packageId`),
+  CONSTRAINT `dish_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `dish` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `dish_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `dish_detail` */
 
 /*Table structure for table `dish_type` */
 
@@ -94,15 +159,35 @@ CREATE TABLE `drink` (
   `typeId` int(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
-  `image` varchar(500) NOT NULL,
+  `image` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `type` (`typeId`),
-  CONSTRAINT `drink_ibfk_1` FOREIGN KEY (`typeId`) REFERENCES `drink_type` (`id`) ON UPDATE CASCADE
+  KEY `typeId` (`typeId`),
+  CONSTRAINT `drink_ibfk_1` FOREIGN KEY (`typeId`) REFERENCES `drink_type` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `drink` */
 
 insert  into `drink`(`id`,`name`,`typeId`,`price`,`description`,`image`) values (2,'Pepsi',2,1.25,'Cola pepsi de 1 Litro','Drink-1709416985955-1e7d4327-c4ca-46f0-a9cf-3ff5fffabe7d..jpg'),(3,'Big Cola 3L',2,1.5,'Big Cola de 3 Litros','Drink-1709417295287-d0e3d814-cf24-43d7-8a91-6429135e5cf0..jpg');
+
+/*Table structure for table `drink_detail` */
+
+DROP TABLE IF EXISTS `drink_detail`;
+
+CREATE TABLE `drink_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `itemId` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `total` double NOT NULL,
+  `price` double NOT NULL,
+  `packageId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `chairId` (`itemId`),
+  KEY `packageId` (`packageId`),
+  CONSTRAINT `drink_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `drink` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `drink_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `drink_detail` */
 
 /*Table structure for table `drink_type` */
 
@@ -110,13 +195,65 @@ DROP TABLE IF EXISTS `drink_type`;
 
 CREATE TABLE `drink_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(255) NOT NULL,
+  `type` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `drink_type` */
 
 insert  into `drink_type`(`id`,`type`) values (1,'Cervezas'),(2,'Cola'),(4,'Vino');
+
+/*Table structure for table `package` */
+
+DROP TABLE IF EXISTS `package`;
+
+CREATE TABLE `package` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` varchar(255) NOT NULL,
+  `typeId` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `typeId` (`typeId`),
+  CONSTRAINT `package_ibfk_2` FOREIGN KEY (`typeId`) REFERENCES `package_type` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `package` */
+
+insert  into `package`(`id`,`code`,`typeId`,`name`) values (18,'f13f2a3e-d7eb-4502-96a8-3028380b42e6-1709652489536',1,''),(20,'7f4c9cf2-1cf8-44c5-a1a7-1861895f1963-1709655612717',1,'Paquete 1');
+
+/*Table structure for table `package_reservation` */
+
+DROP TABLE IF EXISTS `package_reservation`;
+
+CREATE TABLE `package_reservation` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `packageId` int(11) NOT NULL,
+  `reservationId` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `packageId` (`packageId`),
+  KEY `reservationId` (`reservationId`),
+  KEY `userId` (`userId`),
+  CONSTRAINT `package_reservation_ibfk_1` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `package_reservation_ibfk_2` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `package_reservation_ibfk_3` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `package_reservation` */
+
+/*Table structure for table `package_type` */
+
+DROP TABLE IF EXISTS `package_type`;
+
+CREATE TABLE `package_type` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `package_type` */
+
+insert  into `package_type`(`id`,`type`) values (1,'ADMINISTRATOR'),(2,'USUARIO');
 
 /*Table structure for table `payment` */
 
@@ -209,13 +346,33 @@ CREATE TABLE `room` (
 
 insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`rent`,`image`) values (3,'Anis 1','Perales','0985535221','aniseventos@gmai.com',250,'Room-1709476039404-d720beaf-1496-4a7d-8d1c-31393366d7e7..jpg');
 
+/*Table structure for table `table_detail` */
+
+DROP TABLE IF EXISTS `table_detail`;
+
+CREATE TABLE `table_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `itemId` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `total` double NOT NULL,
+  `price` double NOT NULL,
+  `packageId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `chairId` (`itemId`),
+  KEY `packageId` (`packageId`),
+  CONSTRAINT `table_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `table_type` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `table_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `table_detail` */
+
 /*Table structure for table `table_type` */
 
 DROP TABLE IF EXISTS `table_type`;
 
 CREATE TABLE `table_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
   `price` double NOT NULL,
   `description` varchar(255) NOT NULL,
   `image` varchar(255) NOT NULL,
@@ -224,7 +381,7 @@ CREATE TABLE `table_type` (
 
 /*Data for the table `table_type` */
 
-insert  into `table_type`(`id`,`type`,`price`,`description`,`image`) values (2,'Mesa redonda',1.5,'Mesa redonda para 4 presonas','Table-Type-1709331123793-4db99338-f109-43ad-86da-5e85633af6d9..jpg');
+insert  into `table_type`(`id`,`name`,`price`,`description`,`image`) values (2,'Mesa 1',1.5,'Mesa redonda para 4 presonas','Table-Type-1709331123793-4db99338-f109-43ad-86da-5e85633af6d9..jpg');
 
 /*Table structure for table `user` */
 

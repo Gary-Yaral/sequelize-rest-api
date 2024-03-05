@@ -8,7 +8,7 @@ const DrinkType = require('../models/packageModel')
 
 router.get('/', validateToken, packageController.paginate)
 router.post('/filter', validateToken, packageController.filterAndPaginate)
-router.post('/', validateToken, propTypeValidator, packageController.add)
+router.post('/', validateToken, packageController.add)
 router.put('/:id', validateToken, findId(DrinkType), propTypeValidator, packageController.update)
 router.delete('/:id', validateToken, findId(DrinkType), packageController.remove)
 router.get('/list', packageController.getAll)
