@@ -4,7 +4,7 @@ const Sequelize = require('sequelize')
 const PackageStatus = db.define(
   'PackageStatus',
   {
-    name: {
+    status: {
       type: Sequelize.STRING,
       allowNull: false
     },

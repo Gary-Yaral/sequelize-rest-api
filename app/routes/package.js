@@ -4,13 +4,15 @@ const { validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 const { findId } = require('../middlewares/findId')
 const { propTypeValidator } = require('../validators/commonValidator')
-const DrinkType = require('../models/packageModel')
+const Package = require('../models/packageModel')
 
 router.get('/', validateToken, packageController.paginate)
+router.get('/find/:id', validateToken, findId(Package), packageController.findOne)
+/* router.get('/list', validateToken, packageController.getAll) */
+router.get('/statuses', validateToken, packageController.getStatuses)
 router.post('/filter', validateToken, packageController.filterAndPaginate)
 router.post('/', validateToken, packageController.add)
-router.put('/:id', validateToken, findId(DrinkType), propTypeValidator, packageController.update)
-router.delete('/:id', validateToken, findId(DrinkType), packageController.remove)
-router.get('/list', packageController.getAll)
+router.put('/:id', validateToken, findId(Package), propTypeValidator, packageController.update)
+router.delete('/:id', validateToken, findId(Package), packageController.remove)
 
 module.exports = { router}

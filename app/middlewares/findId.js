@@ -14,7 +14,7 @@ function findId(model) {
         let errors = {...getErrorFormat(errorName, 'No existe un registro con ese identificador', 'params')}
         let errorKeys = [errorName]
         res.status(400).json({ errors, errorKeys })
-      } 
+      }
       req.body.found = found
       next()
     } catch (error) {

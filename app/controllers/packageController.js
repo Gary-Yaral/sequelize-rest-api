@@ -15,6 +15,7 @@ const DrinkDetail = require('../models/drinkDetailModel')
 const Drink = require('../models/drinkModel')
 const { v4: uuidv4 } = require('uuid')
 const { ROLES, PACKAGE_TYPES } = require('../constants/db_constants')
+const PackageStatus = require('../models/packageStatusModel')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -95,7 +96,6 @@ async function add(req, res) {
 }
 
 function prepareItems(req, packageId) {
-  console.log(req.body)
   let categories = Object.keys(req.body)
   categories.forEach((category)=>{
     req.body[category].forEach((item, i) => {
@@ -145,26 +145,9 @@ async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
     //Extraemos el id de registro encontrado
-    const { id, image } = req.body.found
+    const { id } = req.body.found
     // si existe lo eliminamos
-    const affectedRows = await ChairType.destroy({ where: { id }, transaction})
-    // Si no lo encontramos devolvemos meensaje de error
-    if(affectedRows === 0) {
-      await transaction.rollback()
-      let errorName = 'request'
-      let errors = {...getErrorFormat(errorName, 'Error al eliminar registro', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
-    }
-    // Si todo ha ido bien
-    const imageWasDeleted = deteleImage(image)
-    if(imageWasDeleted) {
-      await transaction.rollback()
-      let errorName = 'image'
-      let errors = {...getErrorFormat(errorName, 'Error eliminar el registro', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
-    }
+    await Package.destroy({ where: { id }, transaction})
     // Guardamos los cambios en la base de datos
     await transaction.commit()
     // Retornamos mensjae de que todo ha ido bien
@@ -302,27 +285,11 @@ function getPaginateQuery(offset, pageSize, filter = null) {
   return query
 }
 
-async function getAll(req, res) {
+async function getStatuses(req, res) {
   try {
-    const [results, metadata] = await db.query(`
-      SELECT 
-      package.id, 
-      package.name, 
-      package.code, 
-      packType.type, 
-      COUNT(chDetail.id) AS items, 
-      SUM(total) AS total 
-      FROM chair_detail AS chDetail
-      INNER JOIN package
-      ON chDetail.packageId = package.id
-      INNER JOIN package_type AS packType
-      ON package.typeId = packType.id
-      GROUP BY packageId    
-    `)
-
+    let statuses = await PackageStatus.findAll()
     return res.json({
-      result: true,
-      data: { results, metadata }
+      data: { statuses }
     })
   } catch (error) {
     console.log(error)
@@ -335,25 +302,53 @@ async function getAll(req, res) {
 
 async function findOne(req, res) {
   try {
-    let { packageId } = req.data
-    const dishes = await Package.findAll({
-      include: [{ model: DishDetail, include: [Dish], where: {id: packageId}}]
+    let { id } = req.params
+    // Buscamos la comida
+    const dishes = (await DishDetail.findAll({
+      include: [Dish],
+      attributes: ['quantity', 'packageId'],
+      where: {packageId: id},
+      raw: true
+    }))
+    // Buscamos las mesas
+    const tables = await TableDetail.findAll({
+      include: [TableType],
+      attributes: ['quantity', 'packageId'],
+      where: {packageId: id},
+      raw: true
     })
-    const tables = await Package.findAll({
-      include: [{ model: TableDetail, include: [TableType], where: {id: packageId}}],
+    // Buscamos las sillas
+    const chairs = await ChairDetail.findAll({
+      include: [ChairType],
+      attributes: ['quantity', 'packageId'],
+      where: {packageId: id},
+      raw: true
     })
-    const chairs = await Package.findAll({
-      include: [{ model: ChairDetail, include: [ChairType], where: {id: packageId}}],
+    // Buscamos las decoraciones
+    const decorations = await DecorationDetail.findAll({
+      include: [DecorationType],
+      attributes: ['quantity', 'packageId'],
+      where: {packageId: id},
+      raw: true
     })
-    const decorations = await Package.findAll({
-      include: [{ model: DecorationDetail, include: [DecorationType], where: {id: packageId}}],
+    // Buscamos las bebidas
+    const drinks = await DrinkDetail.findAll({
+      include: [Drink],
+      attributes: ['quantity', 'packageId'],
+      where: {packageId: id},
+      raw: true
     })
-    const drinks = await Package.findAll({
-      include: [{ model: DrinkDetail, include: [Drink], where: {id: packageId}}],
-    })
+    // Buscamos el paquete
     return res.json({
       result: true,
-      data: { dishes, tables, chairs, decorations, drinks}
+      package: req.body.found,
+      data: { 
+        dishes: getItemsProps(dishes), 
+        tables: getItemsProps(tables),
+        chairs: getItemsProps(chairs), 
+        decorations: getItemsProps(decorations), 
+        drinks: getItemsProps(drinks)
+      }
     })
   } catch (error) {
     console.log(error)
@@ -364,12 +359,28 @@ async function findOne(req, res) {
   }
 }
 
+function getItemsProps(data) {
+  return data.map((item => {
+    let obj = {}
+    let keys = Object.keys(item)
+    for(let key of keys) {
+      let k = key.split('.')
+      if(k.length > 1) {
+        obj[k[1]] = item[key]
+      } else {
+        obj[key] = item[key]
+      }
+    } 
+    return obj 
+  }))
+}
+
 module.exports = {
   add,
   update,
   remove,
   paginate, 
   filterAndPaginate,
-  getAll,
+  getStatuses,
   findOne
 }
