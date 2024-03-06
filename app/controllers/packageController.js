@@ -1,7 +1,7 @@
 const sequelize = require('../database/config')
 const db  = require('../database/config')
 const ChairType = require('../models/chairTypeModel')
-const { deteleImage } = require('../utils/deleteFile')
+const { Op } = require('sequelize')
 const { getErrorFormat } = require('../utils/errorsFormat')
 const DishDetail = require('../models/dishDetailModel')
 const Package = require('../models/packageModel')
@@ -56,8 +56,8 @@ async function add(req, res) {
     // Eliminamos name y status del body para luego poder preparar los datos
     delete req.body.name
     delete req.body.status
-    // Creamos los objetos que se guardaran y le añadimos el id del paquete
-    prepareItems(req, id)
+    // Añadimos el id del paquete a todos los elementos
+    addPackageId(req, id)
     // Hacemos los inserciones
     // MESAS
     if(req.body.tables) {
@@ -95,7 +95,7 @@ async function add(req, res) {
   }
 }
 
-function prepareItems(req, packageId) {
+function addPackageId(req, packageId) {
   let categories = Object.keys(req.body)
   categories.forEach((category)=>{
     req.body[category].forEach((item, i) => {
@@ -107,29 +107,54 @@ function prepareItems(req, packageId) {
 async function update(req, res) {
   const transaction = await sequelize.transaction()
   try { 
-    // Si no se envio una imagen la quitamos del body para que no actualice la imagen
-    if(req.body.image === '' || !req.body.image) {
-      delete req.body.image
+    let { id } = req.body.found
+    let { name, status } = req.body
+    // Eliminamos los registros de las secciones que no fueron enviadas
+    if(!req.body.chairs) {
+      await ChairDetail.destroy({ where: { packageId: id}, transaction})
     }
-    // Actualizamos los datos
-    await ChairType.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Eliminamos la imagen anterior usando su path
-    if(req.body.currentImage) {
-      const imageWasDeleted = deteleImage(req.body.currentImage)  
-      // Si no se pudo eliminar la imagen que guardamos devolvemos error
-      if(imageWasDeleted) {
-        await transaction.rollback()
-        let errorName = 'image'
-        let errors = {...getErrorFormat(errorName, 'Error al eliminar la imagen guardada', errorName) }
-        let errorKeys = [ errorName ]
-        return res.status(400).json({ errors, errorKeys })
-      }
+    if(!req.body.tables) {
+      await TableDetail.destroy({ where: { packageId: id}, transaction})
     }
-    // Retornamos el mensaje de que todo ha ido bien
-    await transaction.commit() 
+    if(!req.body.dishes) {
+      await DishDetail.destroy({ where: { packageId: id}, transaction})
+    }
+    if(!req.body.drinks) {
+      await DrinkDetail.destroy({ where: { packageId: id}, transaction})
+    }
+    if(!req.body.decorations) {
+      await DecorationDetail.destroy({ where: { packageId: id}, transaction})
+    }
+
+    // Buscamos todos los registros que existan con ese paquete
+    let package = await getCurrentData(id)
+    // PROCESAMOS TODO - (INCLUYE AGREGAR NUEVOS, EDITAR ACTUALES Y ELIMINAR LOS QUE FUERON QUITADOS)
+    // Procesamos las sillas
+    if(req.body.chairs){
+      await processData(req.body.chairs, package.chairs, ChairDetail, id, transaction)
+    }
+    // Procesamos las mesas
+    if(req.body.tables){
+      await processData(req.body.tables, package.tables, TableDetail, id, transaction)
+    }
+    // Procesamos las bebidas
+    if(req.body.drinks){
+      await processData(req.body.drinks, package.drinks, DrinkDetail, id, transaction)
+    }
+    // Procesamos las comidas
+    if(req.body.dishes){
+      await processData(req.body.dishes, package.dishes, DishDetail, id, transaction)
+    }
+    // Procesamos las decoraciones
+    if(req.body.decorations){
+      await processData(req.body.decorations, package.decorations, DecorationDetail, id, transaction)
+    }
+    // ACTUALIZAMOS LOS DATOS DEL PAQUETE
+    await Package.update({name, status},{ where: {id}, transaction })
+    // Si todo va bien se guardan todos los cambios
+    await transaction.commit()
     return res.json({
-      result: true,
-      message: 'Registro actualizado correctamente'
+      result: true
     })
     
   } catch (error) {
@@ -138,6 +163,28 @@ async function update(req, res) {
     let errors = {...getErrorFormat(errorName, 'Error al actualizar registro', errorName) }
     let errorKeys = [errorName]
     return res.status(400).json({ errors, errorKeys })
+  }
+}
+
+async function processData(arr1, arr2, model, packageId, transaction) {
+  let itemsIds = [...arr1].map(el => el.itemId)
+  let itemsIds2 = [...arr2].map(el => el.id)
+
+  // Eliminar registros que ya no están presentes entre los nuevos
+  for (let itemId of itemsIds2) {
+    if (!itemsIds.includes(itemId)) {
+      await model.destroy({ where: { packageId, itemId }, transaction })
+    }
+  }
+
+  // Agregar elementos nuevos o actualizar existentes
+  for (let item of arr1) {
+    if (!arr2.some(m => m.id === item.itemId)) {
+      await model.create(item, { transaction })
+    } else {
+      let { quantity, itemId } = item
+      await model.update({ quantity }, { where: { itemId, packageId }, transaction })
+    }
   }
 }
 
@@ -303,52 +350,11 @@ async function getStatuses(req, res) {
 async function findOne(req, res) {
   try {
     let { id } = req.params
-    // Buscamos la comida
-    const dishes = (await DishDetail.findAll({
-      include: [Dish],
-      attributes: ['quantity', 'packageId'],
-      where: {packageId: id},
-      raw: true
-    }))
-    // Buscamos las mesas
-    const tables = await TableDetail.findAll({
-      include: [TableType],
-      attributes: ['quantity', 'packageId'],
-      where: {packageId: id},
-      raw: true
-    })
-    // Buscamos las sillas
-    const chairs = await ChairDetail.findAll({
-      include: [ChairType],
-      attributes: ['quantity', 'packageId'],
-      where: {packageId: id},
-      raw: true
-    })
-    // Buscamos las decoraciones
-    const decorations = await DecorationDetail.findAll({
-      include: [DecorationType],
-      attributes: ['quantity', 'packageId'],
-      where: {packageId: id},
-      raw: true
-    })
-    // Buscamos las bebidas
-    const drinks = await DrinkDetail.findAll({
-      include: [Drink],
-      attributes: ['quantity', 'packageId'],
-      where: {packageId: id},
-      raw: true
-    })
     // Buscamos el paquete
     return res.json({
       result: true,
       package: req.body.found,
-      data: { 
-        dishes: getItemsProps(dishes), 
-        tables: getItemsProps(tables),
-        chairs: getItemsProps(chairs), 
-        decorations: getItemsProps(decorations), 
-        drinks: getItemsProps(drinks)
-      }
+      data: await getCurrentData(id)
     })
   } catch (error) {
     console.log(error)
@@ -356,6 +362,50 @@ async function findOne(req, res) {
     let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
     let errorKeys = [errorName]
     return res.status(400).json({ errors, errorKeys })
+  }
+}
+
+async function getCurrentData(id) {
+  const dishes = await DishDetail.findAll({
+    include: [Dish],
+    attributes: ['quantity', 'packageId'],
+    where: {packageId: id},
+    raw: true
+  })
+  // Buscamos las mesas
+  const tables = await TableDetail.findAll({
+    include: [TableType],
+    attributes: ['quantity', 'packageId'],
+    where: {packageId: id},
+    raw: true
+  })
+  // Buscamos las sillas
+  const chairs = await ChairDetail.findAll({
+    include: [ChairType],
+    attributes: ['quantity', 'packageId'],
+    where: {packageId: id},
+    raw: true
+  })
+  // Buscamos las decoraciones
+  const decorations = await DecorationDetail.findAll({
+    include: [DecorationType],
+    attributes: ['quantity', 'packageId'],
+    where: {packageId: id},
+    raw: true
+  })
+  // Buscamos las bebidas
+  const drinks = await DrinkDetail.findAll({
+    include: [Drink],
+    attributes: ['quantity', 'packageId'],
+    where: {packageId: id},
+    raw: true
+  })
+  return  { 
+    dishes: getItemsProps(dishes), 
+    tables: getItemsProps(tables),
+    chairs: getItemsProps(chairs), 
+    decorations: getItemsProps(decorations), 
+    drinks: getItemsProps(drinks)
   }
 }
 

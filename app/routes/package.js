@@ -3,7 +3,6 @@ const packageController = require('../controllers/packageController')
 const { validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 const { findId } = require('../middlewares/findId')
-const { propTypeValidator } = require('../validators/commonValidator')
 const Package = require('../models/packageModel')
 
 router.get('/', validateToken, packageController.paginate)
@@ -12,7 +11,7 @@ router.get('/find/:id', validateToken, findId(Package), packageController.findOn
 router.get('/statuses', validateToken, packageController.getStatuses)
 router.post('/filter', validateToken, packageController.filterAndPaginate)
 router.post('/', validateToken, packageController.add)
-router.put('/:id', validateToken, findId(Package), propTypeValidator, packageController.update)
+router.put('/:id', validateToken, findId(Package), packageController.update)
 router.delete('/:id', validateToken, findId(Package), packageController.remove)
 
 module.exports = { router}
