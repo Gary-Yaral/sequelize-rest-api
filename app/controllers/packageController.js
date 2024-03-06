@@ -1,6 +1,5 @@
 const sequelize = require('../database/config')
-const SequelizeORM = require('sequelize')
-const { Op } = require('sequelize')
+const db  = require('../database/config')
 const ChairType = require('../models/chairTypeModel')
 const { deteleImage } = require('../utils/deleteFile')
 const { getErrorFormat } = require('../utils/errorsFormat')
@@ -16,7 +15,6 @@ const DrinkDetail = require('../models/drinkDetailModel')
 const Drink = require('../models/drinkModel')
 const { v4: uuidv4 } = require('uuid')
 const { ROLES, PACKAGE_TYPES } = require('../constants/db_constants')
-const PackageType = require('../models/packageTypeModel')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -37,7 +35,8 @@ async function add(req, res) {
     }
     // Creamos la data del paquete
     let name = req.body.name
-    let packData = {code, typeId, name}
+    let status = req.body.status
+    let packData = {code, typeId, name, status}
     // Extraemos el nombre que le pondremos al paquete
     if(!name) { delete packData.name }
     // Creamos el paquete
@@ -53,12 +52,11 @@ async function add(req, res) {
     
     // Extaremos el id del paquete para añadirselo a todos los registros
     let { id } = pack
-    // Eliminamos name del body para luego poder preparar los datos
+    // Eliminamos name y status del body para luego poder preparar los datos
     delete req.body.name
+    delete req.body.status
     // Creamos los objetos que se guardaran y le añadimos el id del paquete
     prepareItems(req, id)
-    /* transaction.rollback()
-     return  res.json({result: false, body: req.body}) */
     // Hacemos los inserciones
     // MESAS
     if(req.body.tables) {
@@ -187,17 +185,15 @@ async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
-    const data = await Package.findAndCountAll({
-      include: [PackageType],
-      raw: true,
-      limit: perPage,
-      offset: (currentPage - 1) * perPage
-    })
+    const offset = (currentPage - 1) * perPage
+    const query = getPaginateQuery(offset, perPage) 
+    const [rows] = await db.query(query)
     return res.json({
       result: true,
-      data
+      data: {count: rows.length, rows}
     })
   } catch (error) {
+    console.log(error)
     let errorName = 'request'
     let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
     let errorKeys = [errorName]
@@ -212,27 +208,15 @@ async function filterAndPaginate(req, res) {
     const currentPage = parseInt(req.body.currentPage)
     const perPage = parseInt(req.body.perPage)
 
-    // Construir la condición de filtro
-    const filterCondition = {
-      include: [PackageType],
-      limit: perPage,
-      offset: (currentPage - 1) * perPage,
-      raw: true,
-      where: {
-        [Op.or]: [
-          { type: { [Op.like]: `%${filter}%` } },
-          { price: { [Op.eq]: filter } },
-          { description: { [Op.like]: `%${filter}%` } }
-        ]
-      }
-    }
-    // Realizar la consulta con paginación y filtros
-    const data = await Package.findAndCountAll(filterCondition)
+    const offset = (currentPage - 1) * perPage
+    const query = getPaginateQuery(offset, perPage, filter)
+    const [rows] = await db.query(query)
     return res.json({
       result: true,
-      data
-    }) 
+      data: {count:rows.length, rows}
+    })
   } catch(error) {
+    console.log(error)
     let errorName = 'request'
     let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
     let errorKeys = [errorName]
@@ -240,35 +224,105 @@ async function filterAndPaginate(req, res) {
   }
 }
 
+function getPaginateQuery(offset, pageSize, filter = null) {
+  let query = ''
+  if(filter) {
+    query += `
+      SELECT id, name, code, type, categories, price, status
+      FROM (
+    `
+  }
+  query  += `
+    SELECT 
+      CombinedItems.packageId AS id, 
+      p.name, 
+      p.code, 
+      ptype.type, 
+      CAST(CombinedItems.total_items AS INT) AS categories, 
+      SUM(CombinedItems.total) AS price,
+      pstatus.status
+    FROM (
+      SELECT 
+        packageId, 
+        SUM(total) AS total,
+        SUM(items) AS total_items
+      FROM (
+        SELECT packageId, SUM(chair_detail.quantity * chair_type.price) AS total, COUNT(*) AS items 
+        FROM chair_detail
+        INNER JOIN chair_type
+        ON chair_type.id = chair_detail.itemId
+        GROUP BY packageId
+        UNION ALL
+        SELECT packageId, SUM(decoration_detail.quantity * decoration_type.price) AS total, COUNT(*) AS items 
+        FROM decoration_detail
+        INNER JOIN decoration_type
+        ON decoration_type.id = decoration_detail.itemId
+        GROUP BY packageId
+        UNION ALL
+        SELECT packageId, SUM(drink_detail.quantity * drink.price) AS total, COUNT(*) AS items 
+        FROM drink_detail 
+        INNER JOIN drink
+        ON drink.id = drink_detail.itemId
+        GROUP BY packageId
+        UNION ALL
+        SELECT packageId, SUM(dish_detail.quantity * dish.price) AS total, COUNT(*) AS items 
+        FROM dish_detail 
+        INNER JOIN dish
+        ON dish.id = dish_detail.itemId
+        GROUP BY packageId
+        UNION ALL
+        SELECT packageId, SUM(table_detail.quantity * table_type.price) AS total, COUNT(*) AS items 
+        FROM table_detail 
+        INNER JOIN table_type
+        ON table_type.id = table_detail.itemId
+        GROUP BY packageId
+      ) AS TotalItems
+      GROUP BY packageId
+    ) AS CombinedItems
+    INNER JOIN package p ON CombinedItems.packageId = p.id
+    INNER JOIN package_type ptype ON p.typeId = ptype.id
+    INNER JOIN package_status pstatus ON p.status = pstatus.id
+    GROUP BY CombinedItems.packageId`
+
+  if(filter) {
+    query += `
+    ) AS FilteredPackages
+    WHERE 
+        type LIKE CONCAT('%', '${filter}', '%') OR
+        name LIKE CONCAT('%', '${filter}', '%') OR
+        price LIKE CONCAT('%', '${filter}', '%') OR 
+        code LIKE CONCAT('%', '${filter}', '%') OR 
+        categories LIKE CONCAT('%', '${filter}', '%') OR
+        status LIKE CONCAT('%', '${filter}', '%')
+    `
+  }
+  query += `
+    LIMIT ${pageSize} OFFSET ${offset};
+    `
+  return query
+}
+
 async function getAll(req, res) {
   try {
-    const dishes = await Package.findAll({
-      include: [{ model: DishDetail, include: [Dish] }],
-      attributes: [
-        // Utiliza sequelize.literal() para calcular la suma total de la columna "total" de DishDetail
-        [SequelizeORM.literal('SUM(`DishDetails`.`total`)'), 'totalDetails'],
-      ],
-    })
-    const tables = await Package.findAll({
-      include: [{ model: TableDetail, include: [TableType] }],
-    })
-    const chairs = await Package.findAll({
-      include: [{
-        model: ChairDetail,
-        as: 'ChairDetails',
-        attributes: [[SequelizeORM.fn('SUM', SequelizeORM.col('total')), 'total']]
-      }],
-      group: ['Package.id'],
-    })
-    const decorations = await Package.findAll({
-      include: [{ model: DecorationDetail, include: [DecorationType] }],
-    })
-    const drinks = await Package.findAll({
-      include: [{ model: DrinkDetail, include: [Drink] }],
-    })
+    const [results, metadata] = await db.query(`
+      SELECT 
+      package.id, 
+      package.name, 
+      package.code, 
+      packType.type, 
+      COUNT(chDetail.id) AS items, 
+      SUM(total) AS total 
+      FROM chair_detail AS chDetail
+      INNER JOIN package
+      ON chDetail.packageId = package.id
+      INNER JOIN package_type AS packType
+      ON package.typeId = packType.id
+      GROUP BY packageId    
+    `)
+
     return res.json({
       result: true,
-      data: { dishes, tables, chairs, decorations, drinks}
+      data: { results, metadata }
     })
   } catch (error) {
     console.log(error)
