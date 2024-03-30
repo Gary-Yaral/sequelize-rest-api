@@ -1,12 +1,22 @@
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 const SECRET_KEY = process.env.SECRET_KEY
+const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY
+const OPTIONS_TOKEN = {
+  create: 'create',
+  refresh: 'refresh'
+}
 
 // Clave secreta para firmar y verificar el token
 
 // Función para crear un token
-function createToken(data) {
-  return jwt.sign({data}, SECRET_KEY, { expiresIn: '1h' })
+function createToken(data, option) {
+  if(option === OPTIONS_TOKEN.create) {
+    return jwt.sign({data}, SECRET_KEY, { expiresIn: '1h' })
+  }
+  if(option === OPTIONS_TOKEN.refresh) {
+    return jwt.sign({data}, REFRESH_SECRET_KEY)
+  }
 }
 
 // Función para verificar un token
@@ -36,4 +46,4 @@ function caducity(decoded) {
   }
 }
 
-module.exports = { createToken, verifyToken, caducity }
+module.exports = { createToken, verifyToken, caducity, OPTIONS_TOKEN }

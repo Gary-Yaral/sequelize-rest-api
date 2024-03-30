@@ -1,15 +1,11 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
-const PackageType = require('./packageTypeModel')
 const PackageStatus = require('./packageStatusModel')
+const UserRole = require('./userRoleModel')
 
 const Package = db.define(
   'Package',
   {
-    code:  {
-      type: Sequelize.STRING,
-      allowNull: false
-    },
     name:  {
       type: Sequelize.STRING,
       allowNull: true
@@ -22,11 +18,11 @@ const Package = db.define(
         key: ['id']
       }
     },
-    typeId: {
+    userRoleId: {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: PackageType,
+        model: UserRole,
         key: 'id'
       }
     }
@@ -38,12 +34,11 @@ const Package = db.define(
 )
 
 // Creamos las relaciones entre modelos
-PackageType.hasMany(Package, { foreignKey: 'typeId' })
-Package.belongsTo(PackageType, { foreignKey: 'typeId' })
-
-// Creamos las relaciones entre modelos
 PackageStatus.hasMany(Package, { foreignKey: 'status' })
 Package.belongsTo(PackageStatus, { foreignKey: 'status' })
+
+UserRole.hasMany(Package, { foreignKey: 'userRoleId' })
+Package.belongsTo(UserRole, { foreignKey: 'userRoleId' })
 
 Package.sync()
   .then(() => {

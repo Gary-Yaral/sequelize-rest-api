@@ -3,7 +3,7 @@ const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const DB_CONSTANTS = require('../constants/db_constants')
 const { validateHash } = require('../utils/bcrypt')
-const { createToken } = require('../utils/jwt')
+const { createToken, OPTIONS_TOKEN } = require('../utils/jwt')
 const { Op } = require('sequelize')
 const UserStatus = require('../models/userStatusModel')
 const { getErrorFormat } = require('../utils/errorsFormat')
@@ -190,7 +190,7 @@ async function getOnlySuperAdmins(req, res) {
 
 async function findOne(req, res) {
   try {
-    const id = req.params.id
+    const id = req.user.data.User.id
     if(!id) {
       return res.json({error: 'No se ha enviado el id del usuario'})
     }
@@ -255,19 +255,18 @@ async function getOnlyUsers(req, res) {
 
 async function getAuth(req, res) {
   try {
-    const username = req.body.username
-    const password = req.body.password
-    // Si no se envian los datos enviará un msg de error
-    if(!username || !password) {
-      return res.json({ 
-        error: 'No se han recibido datos de acceso', 
-      })
-    }
     // Hacemos la consulta
     let foundUser = await UserRoles.findAll({
-      include: [User, Role],
+      include: [
+        User, 
+        {
+          model: Role,
+          include: [UserRoles]
+        }
+      ],
       where: {
-        '$User.username$': username}
+        '$User.username$': req.body.username
+      }
     })
     // Si no existe el usuario devuelve error
     if(foundUser.length === 0) {
@@ -292,7 +291,7 @@ async function getAuth(req, res) {
     // Extraemos el hash de la consulta
     const hash = foundUser.User.dataValues.password
     // Validamos la contraseña
-    const hasAuth = await validateHash(password, hash)
+    const hasAuth = await validateHash(req.body.password, hash)
     if(!hasAuth) {
       return res.json({ 
         error: 'Usuario o contraseña incorrectos', 
@@ -300,15 +299,23 @@ async function getAuth(req, res) {
     }
     // Removemos la contraseña del objeto de respuesta
     delete foundUser.User.dataValues.password
-    // Creamos el token
-    const token = createToken({
+    // Definimos los datos para el token 
+    const tokenData = {
       User: foundUser.User.dataValues,
-      Role: foundUser.Role.dataValues
-    })
+      Role: foundUser.Role.dataValues,
+      UserRole: foundUser.Role.UserRoles[0].dataValues
+    }
+    // Creamos el token y el refresh token
+    const token = createToken(tokenData, OPTIONS_TOKEN.create)
+    const refreshToken = createToken(tokenData, OPTIONS_TOKEN.refresh)
     // Añadimos el token a los datos de la sesión
-    foundUser.dataValues.token = token
+    const data = {
+      token: token, 
+      refreshToken: refreshToken, 
+      roleName: foundUser.Role.dataValues.role
+    }
     // Restornamos los datos de la sesión
-    res.json(foundUser)
+    res.json({data})
   } catch (error) {
     res.json({ error: error.message })
   }

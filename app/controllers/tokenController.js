@@ -4,15 +4,21 @@ const Role = require('../models/roleModel')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const { getErrorFormat } = require('../utils/errorsFormat')
-const { createToken } = require('../utils/jwt')
+const { createToken, OPTIONS_TOKEN } = require('../utils/jwt')
 
 async function refresh(req, res) {
   try {
-    const user = req.user
-    const userId = user.data.User.id 
+    const userId = req.user.data.User.id
+    console.log(req.user)
     // Hacemos la consulta
     let foundUser = await UserRoles.findAll({
-      include: [User, Role],
+      include: [
+        User, 
+        {
+          model: Role,
+          include: [UserRoles]
+        }
+      ],
       where: {
         '$User.id$': userId
       }
@@ -28,8 +34,9 @@ async function refresh(req, res) {
     // Creamos el nuevo token
     const token = createToken({
       User: foundUser.User.dataValues,
-      Role: foundUser.Role.dataValues
-    })
+      Role: foundUser.Role.dataValues,
+      UserRole: foundUser.Role.UserRoles[0].dataValues
+    }, OPTIONS_TOKEN.create)
     return res.json({token})
   } catch (error) {
     let errorName = 'request'

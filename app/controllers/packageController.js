@@ -13,40 +13,23 @@ const DecorationDetail = require('../models/decorationDetailModel')
 const DecorationType = require('../models/decorationTypeModel')
 const DrinkDetail = require('../models/drinkDetailModel')
 const Drink = require('../models/drinkModel')
-const { v4: uuidv4 } = require('uuid')
-const { ROLES, PACKAGE_TYPES } = require('../constants/db_constants')
 const PackageStatus = require('../models/packageStatusModel')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    // Generar UUID
-    const uuid = uuidv4()
-    // Obtener marca de tiempo actual
-    const timestamp = Date.now()
-    // Creamos el codigo del paquete combinando uuid y timestamp
-    const code = `${uuid}-${timestamp}`
-    // Extreamos el rol de usuario que envia la información
-    const roleId = req.user.data.Role.id
-    // Definimos como paquete de tipo usuario por defecto
-    let typeId = PACKAGE_TYPES.USER
-    // Verificamos si de pronto tiene rol de administrador
-    if(roleId === ROLES.ADMIN || roleId === ROLES.SUPER_ADMIN) {
-      typeId = PACKAGE_TYPES.ADMIN
-    }
     // Creamos la data del paquete
     let name = req.body.name
     let status = req.body.status
-    let packData = {code, typeId, name, status}
-    // Extraemos el nombre que le pondremos al paquete
-    if(!name) { delete packData.name }
+    let userRoleId = req.user.data.UserRole.id
+    let packData = {name, status, userRoleId}
     // Creamos el paquete
     const pack = await Package.create(packData, {transaction})
     // Si no se creó el paquete retornamos error
     if(!pack) {
       transaction.rollback()
       let errorName = 'request'
-      let errors = {...getErrorFormat(errorName, 'Error al guardar registro 1', errorName) }
+      let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
       let errorKeys = [errorName]
       return res.status(400).json({ errors, errorKeys }) 
     }
@@ -258,7 +241,7 @@ function getPaginateQuery(offset, pageSize, filter = null) {
   let query = ''
   if(filter) {
     query += `
-      SELECT id, name, code, type, categories, price, status
+      SELECT id, name, code, categories, price, status
       FROM (
     `
   }
@@ -266,8 +249,6 @@ function getPaginateQuery(offset, pageSize, filter = null) {
     SELECT 
       CombinedItems.packageId AS id, 
       p.name, 
-      p.code, 
-      ptype.type, 
       CAST(CombinedItems.total_items AS INT) AS categories, 
       SUM(CombinedItems.total) AS price,
       pstatus.status
@@ -310,7 +291,6 @@ function getPaginateQuery(offset, pageSize, filter = null) {
       GROUP BY packageId
     ) AS CombinedItems
     INNER JOIN package p ON CombinedItems.packageId = p.id
-    INNER JOIN package_type ptype ON p.typeId = ptype.id
     INNER JOIN package_status pstatus ON p.status = pstatus.id
     GROUP BY CombinedItems.packageId`
 
@@ -321,7 +301,6 @@ function getPaginateQuery(offset, pageSize, filter = null) {
         type LIKE CONCAT('%', '${filter}', '%') OR
         name LIKE CONCAT('%', '${filter}', '%') OR
         price LIKE CONCAT('%', '${filter}', '%') OR 
-        code LIKE CONCAT('%', '${filter}', '%') OR 
         categories LIKE CONCAT('%', '${filter}', '%') OR
         status LIKE CONCAT('%', '${filter}', '%')
     `
