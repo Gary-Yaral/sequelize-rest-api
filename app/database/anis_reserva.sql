@@ -24,19 +24,16 @@ CREATE TABLE `chair_detail` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `itemId` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
-  `total` double NOT NULL,
-  `price` double NOT NULL,
   `packageId` int(11) NOT NULL,
+  `total` double NOT NULL,
   PRIMARY KEY (`id`),
   KEY `chairId` (`itemId`),
   KEY `chair_detail_ibfk_2` (`packageId`),
   CONSTRAINT `chair_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `chair_type` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `chair_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=86 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=94 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `chair_detail` */
-
-insert  into `chair_detail`(`id`,`itemId`,`quantity`,`total`,`price`,`packageId`) values (82,68,1,0,0,31),(83,75,1,0,0,31),(84,68,1,0,0,32),(85,75,1,0,0,32);
 
 /*Table structure for table `chair_type` */
 
@@ -63,15 +60,14 @@ CREATE TABLE `decoration_detail` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `itemId` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
-  `total` double NOT NULL,
-  `price` double NOT NULL,
   `packageId` int(11) NOT NULL,
+  `total` double NOT NULL,
   PRIMARY KEY (`id`),
   KEY `chairId` (`itemId`),
   KEY `packageId` (`packageId`),
   CONSTRAINT `decoration_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `decoration_type` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `decoration_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `decoration_detail` */
 
@@ -123,15 +119,14 @@ CREATE TABLE `dish_detail` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `itemId` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
-  `total` double NOT NULL,
-  `price` double NOT NULL,
   `packageId` int(11) NOT NULL,
+  `total` double NOT NULL,
   PRIMARY KEY (`id`),
   KEY `chairId` (`itemId`),
   KEY `packageId` (`packageId`),
   CONSTRAINT `dish_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `dish` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `dish_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `dish_detail` */
 
@@ -177,15 +172,14 @@ CREATE TABLE `drink_detail` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `itemId` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
-  `total` double NOT NULL,
-  `price` double NOT NULL,
   `packageId` int(11) NOT NULL,
+  `total` double NOT NULL,
   PRIMARY KEY (`id`),
   KEY `chairId` (`itemId`),
   KEY `packageId` (`packageId`),
   CONSTRAINT `drink_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `drink` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `drink_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `drink_detail` */
 
@@ -209,20 +203,19 @@ DROP TABLE IF EXISTS `package`;
 
 CREATE TABLE `package` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `code` varchar(255) NOT NULL,
-  `typeId` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `status` int(11) NOT NULL,
+  `userRoleId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `typeId` (`typeId`),
   KEY `status` (`status`),
-  CONSTRAINT `package_ibfk_2` FOREIGN KEY (`typeId`) REFERENCES `package_type` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `package_ibfk_3` FOREIGN KEY (`status`) REFERENCES `payment_status` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idUsuario` (`userRoleId`),
+  CONSTRAINT `package_ibfk_3` FOREIGN KEY (`status`) REFERENCES `payment_status` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `package_ibfk_4` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `package` */
 
-insert  into `package`(`id`,`code`,`typeId`,`name`,`status`) values (31,'8aa80cf4-d0f4-4604-9730-cc43b714773b-1709741029161',1,'Paquete 5',1),(32,'1f486cef-59ff-4d2d-b515-10c5514e1347-1709741134843',1,'Pquete 10',1);
+insert  into `package`(`id`,`name`,`status`,`userRoleId`) values (39,'001',1,10);
 
 /*Table structure for table `package_reservation` */
 
@@ -371,15 +364,14 @@ CREATE TABLE `table_detail` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `itemId` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
-  `total` double NOT NULL,
-  `price` double NOT NULL,
   `packageId` int(11) NOT NULL,
+  `total` double NOT NULL,
   PRIMARY KEY (`id`),
   KEY `chairId` (`itemId`),
   KEY `packageId` (`packageId`),
   CONSTRAINT `table_detail_ibfk_1` FOREIGN KEY (`itemId`) REFERENCES `table_type` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `table_detail_ibfk_2` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `table_detail` */
 
