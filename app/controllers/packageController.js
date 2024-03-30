@@ -1,7 +1,6 @@
 const sequelize = require('../database/config')
 const db  = require('../database/config')
 const ChairType = require('../models/chairTypeModel')
-const { Op } = require('sequelize')
 const { getErrorFormat } = require('../utils/errorsFormat')
 const DishDetail = require('../models/dishDetailModel')
 const Package = require('../models/packageModel')
@@ -17,30 +16,16 @@ const PackageStatus = require('../models/packageStatusModel')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
-  try {
-    // Creamos la data del paquete
-    let name = req.body.name
-    let status = req.body.status
-    let userRoleId = req.user.data.UserRole.id
-    let packData = {name, status, userRoleId}
+  try {    
     // Creamos el paquete
-    const pack = await Package.create(packData, {transaction})
+    const pack = await Package.create(req.packData, {transaction})
     // Si no se creó el paquete retornamos error
     if(!pack) {
       transaction.rollback()
-      let errorName = 'request'
-      let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
-      let errorKeys = [errorName]
-      return res.status(400).json({ errors, errorKeys }) 
+      return res.json({ error: true, msg: 'Error al guardar el paquete: ' + name})
     }
-    
-    // Extaremos el id del paquete para añadirselo a todos los registros
-    let { id } = pack
-    // Eliminamos name y status del body para luego poder preparar los datos
-    delete req.body.name
-    delete req.body.status
     // Añadimos el id del paquete a todos los elementos
-    addPackageId(req, id)
+    addPackageId(req, pack.id)
     // Hacemos los inserciones
     // MESAS
     if(req.body.tables) {
@@ -175,7 +160,7 @@ async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
     //Extraemos el id de registro encontrado
-    const { id } = req.body.found
+    const id = req.body.params.id
     // si existe lo eliminamos
     await Package.destroy({ where: { id }, transaction})
     // Guardamos los cambios en la base de datos

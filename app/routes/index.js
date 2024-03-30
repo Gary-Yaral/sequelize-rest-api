@@ -21,7 +21,9 @@ const routes = {
   'images': 'images',
   'token': 'token',
   'userStatus': 'status',
-  'role': 'role'
+  'role': 'role',
+  'items': 'items',
+  'category': 'categories'
 }
 
 // Enrutador de cada archivo

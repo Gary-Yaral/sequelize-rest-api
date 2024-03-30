@@ -3,13 +3,11 @@
 const Role = require('../models/roleModel')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
-const { getErrorFormat } = require('../utils/errorsFormat')
 const { createToken, OPTIONS_TOKEN } = require('../utils/jwt')
 
 async function refresh(req, res) {
   try {
     const userId = req.user.data.User.id
-    console.log(req.user)
     // Hacemos la consulta
     let foundUser = await UserRoles.findAll({
       include: [
@@ -39,10 +37,8 @@ async function refresh(req, res) {
     }, OPTIONS_TOKEN.create)
     return res.json({token})
   } catch (error) {
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    console.log(error)
+    return res.json({ error: true, msg: 'Ha ocurrido un error al refrescar token' })
   }
 }
 

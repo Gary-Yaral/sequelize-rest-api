@@ -2,29 +2,28 @@ const { check } = require('express-validator')
 const { customMessages } = require('../utils/customMessages.js')
 const { textRegex } = require('../utils/regExp.js')
 const { validateRequest } = require('../middlewares/evaluateRequest.js')
-const Package = require('../models/packageModel.js')
+const Item = require('../models/item.model.js')
+const { deteleImage } = require('../utils/deleteFile.js')
 
-const packageValidator = [
+const itemValidator = [
   check('name')
     .exists().withMessage(customMessages['required'])
     .notEmpty().withMessage(customMessages['empty'])
     .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),
-  check('status')
-    .isInt().withMessage(customMessages['number.int'])
+  check('description')
     .exists().withMessage(customMessages['required'])
     .notEmpty().withMessage(customMessages['empty'])
     .custom((value) => textRegex.test(value)).withMessage(customMessages['blanks']),
+  check('price')
+    .exists().withMessage(customMessages['required'])
+    .isNumeric().withMessage(customMessages['price'])
+    .notEmpty().withMessage(customMessages['empty']),
+  check('category')
+    .exists().withMessage(customMessages['required']),
+  check('image')
+    .optional()
+    .notEmpty().withMessage(customMessages['empty']),
   async (req, res, next) => {
-    // Guardamos los datos para el nuevo paquete
-    req.packData = {
-      name: req.body.name.toUpperCase(),
-      status: req.body.status,
-      userRoleId: req.user.data.UserRole.id
-    }
-
-    // Eliminamos name y status del body para luego poder preparar los datos
-    delete req.body.name
-    delete req.body.status
     // Validamos si está guardando o actualizando
     const validation = await isRepeated(req)
     if(!validation.isValid) {
@@ -38,15 +37,15 @@ const packageValidator = [
 
 async function isRepeated(req) {
   try {
-    // Verificamos si ya existe un paquete con ese nombre
-    let found = await Package.findOne({
+    // Verificamos si ya existe un item con ese nombre y esa categoria
+    let found = await Item.findAll({
       where: {
-        name: req.packData.name,
-        userRoleId: req.packData.userRoleId
+        name: req.body.name,
+        categoryId: req.body.category
       }
     })
     // Si no existe aun la respuesta será ok
-    if(!found) {
+    if(found.length === 0) {
       return {
         isValid: true,
         msg: ''
@@ -60,24 +59,49 @@ async function isRepeated(req) {
           msg: ''
         }
       } else {
+        // eliminamos la imagen guardada
+        const hasError = deteleImage(req.body.image) 
+        if(hasError) {
+          console.log(hasError.message)
+          return {
+            isValid: false,
+            msg: 'Error al remover la imagen guardada'
+          } 
+        }
         return {
           isValid: false,
-          msg: 'Este usuario ya tiene registrado un paquete con el nombre: '+req.packData.name 
+          msg: `Ya existe el item ${req.body.name} en esa categoría`
         }
       }
     } else {
+      const hasError = deteleImage(req.body.image) 
+      if(hasError) {
+        console.log(hasError.message)
+        return {
+          isValid: false,
+          msg: 'Error al remover la imagen guardada'
+        } 
+      }
       return {
         isValid: false,
-        msg: 'Este usuario ya tiene registrado un paquete con el nombre: '+req.packData.name 
+        msg: `Ya existe el item ${req.body.name} en esa categoría`
       }
     }
   } catch (error) {
     console.log(error)
+    const hasError = deteleImage(req.body.image) 
+    if(hasError) {
+      console.log(hasError.message)
+      return {
+        isValid: false,
+        msg: 'Error al remover la imagen guardada'
+      } 
+    }
     return {
       isValid: false,
       msg: 'Error al validar el paquete con el nombre: '+req.packData.name 
     }
   }
-
 }
-module.exports = { packageValidator }
+
+module.exports = { itemValidator }
