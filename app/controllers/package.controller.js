@@ -26,10 +26,11 @@ async function add(req, res) {
     // Añadimos el id del paquete a todos los elementos y los tranformamos
     req.body.items = req.body.items.map((item) => {
       return {
-        itemId: item.id,
         packageId: createdPackage.id,
-        date: currentDate,
-        ...item
+        itemId: item.id,
+        price: item.price,
+        quantity: item.quantity,
+        date: currentDate
       }
     })
     // Hacemos los inserciones
@@ -37,8 +38,8 @@ async function add(req, res) {
     // Si todo ha ido bien guardamos los cambios
     await transaction.commit()
     return res.json({
-      result: true,
-      message: 'Paquete ha sido creado correctamente'
+      done: true,
+      msg: 'Paquete ha sido creado correctamente'
     })
   } catch (error) {
     console.log(error)
@@ -56,7 +57,6 @@ async function update(req, res) {
       status: req.body.status,
       name: req.body.name.toUpperCase()
     }
-    console.log(req.params)
     const updated = await Package.update(packData, {where: {id: req.params.id}}, {transaction})
     if(!updated) {
       transaction.rollback()
@@ -81,8 +81,8 @@ async function update(req, res) {
     // Si todo ha ido bien guardamos los cambios
     await transaction.commit()
     return res.json({
-      result: true,
-      message: 'Paquete ha sido actualizado correctamente'
+      done: true,
+      msg: 'Paquete ha sido actualizado correctamente'
     })
   } catch (error) {
     console.log(error)
@@ -100,8 +100,8 @@ async function remove(req, res) {
     await transaction.commit()
     // Retornamos mensjae de que todo ha ido bien
     return res.json({
-      result: true,
-      message: 'Paquete eliminado correctamente'
+      done: true,
+      msg: 'Paquete eliminado correctamente'
     })
   } catch (error) {
     console.log(error)
@@ -241,12 +241,27 @@ async function getStatuses(req, res) {
   }
 }
 
+async function getAll(req, res) {
+  try {
+    let packages = await Package.findAll({
+      where: {
+        userRoleId: req.user.data.UserRole.id
+      }
+    })
+    return res.json({ data: packages })
+  } catch (error) {
+    console.log(error)
+    return res.json({ error: true, msg: 'Error al listar todos los paquetes' })
+  }
+}
+
 
 module.exports = {
   add,
   update,
   remove,
   paginate, 
+  getAll,
   getSavedData,
   getSectionData,
   findOne,

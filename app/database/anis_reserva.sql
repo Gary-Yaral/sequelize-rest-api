@@ -44,11 +44,11 @@ CREATE TABLE `item` (
   PRIMARY KEY (`id`),
   KEY `subcatId` (`subcategoryId`),
   CONSTRAINT `item_ibfk_2` FOREIGN KEY (`subcategoryId`) REFERENCES `subcategory` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `item` */
 
-insert  into `item`(`id`,`name`,`price`,`description`,`image`,`subcategoryId`) values (18,'DFSD',33,'dsds','DOS-1711930212211-cc68ca56-8b9f-4076-a328-1a10a4477590..jpg',7),(19,'GFDG',43,'fdgfg','UNO-1711930234753-beff5785-109c-4678-9cf0-a69b822a1416..jpg',3);
+insert  into `item`(`id`,`name`,`price`,`description`,`image`,`subcategoryId`) values (18,'DFSD',33,'dsds','DOS-1711930212211-cc68ca56-8b9f-4076-a328-1a10a4477590..jpg',7),(19,'GFDG',43,'fdgfg','UNO-1711930234753-beff5785-109c-4678-9cf0-a69b822a1416..jpg',3),(20,'PILSENER',1.5,'Cervez Pilsener','CERVEZA-1711975956774-53e1bc96-f472-4283-98a6-de31209553ea..jpg',8);
 
 /*Table structure for table `package` */
 
@@ -64,9 +64,11 @@ CREATE TABLE `package` (
   KEY `idUsuario` (`userRoleId`),
   CONSTRAINT `package_ibfk_3` FOREIGN KEY (`status`) REFERENCES `payment_status` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `package_ibfk_4` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `package` */
+
+insert  into `package`(`id`,`name`,`status`,`userRoleId`) values (55,'PAQUETE 1',1,10),(56,'PAQUETE 2',1,10);
 
 /*Table structure for table `package_detail` */
 
@@ -84,9 +86,11 @@ CREATE TABLE `package_detail` (
   KEY `package_detail_ibfk_1` (`packageId`),
   CONSTRAINT `package_detail_ibfk_1` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `package_detail_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `package_detail` */
+
+insert  into `package_detail`(`id`,`packageId`,`itemId`,`quantity`,`price`,`date`) values (18,55,18,1,33,'2024-04-01 12:51:06'),(20,56,20,3,1.5,'2024-04-01 13:00:29');
 
 /*Table structure for table `package_reservation` */
 
@@ -218,14 +222,32 @@ CREATE TABLE `room` (
   `address` varchar(255) NOT NULL,
   `telephone` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `rent` double NOT NULL,
+  `description` varchar(1000) NOT NULL,
   `image` varchar(500) NOT NULL,
+  `m2` double NOT NULL,
+  `perDay` double NOT NULL,
+  `perHour` double NOT NULL,
+  `perMonth` double NOT NULL,
+  `capacity` double NOT NULL,
+  `minTimeRent` double NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `room` */
 
-insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`rent`,`image`) values (3,'Anis 1','Perales','0985535221','aniseventos@gmai.com',250,'Room-1709476039404-d720beaf-1496-4a7d-8d1c-31393366d7e7..jpg');
+insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`perDay`,`perHour`,`perMonth`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','Local-1711993346289-a6d7230a-a55f-4cca-bff2-e01ccebd06c0..jpg',200,500,150,150,400,2);
+
+/*Table structure for table `schedule` */
+
+DROP TABLE IF EXISTS `schedule`;
+
+CREATE TABLE `schedule` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `timeRange` varchar(64) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `schedule` */
 
 /*Table structure for table `subcategory` */
 

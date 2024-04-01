@@ -9,21 +9,15 @@ const routes = {
   'user': 'users',
   'userAdmin': 'admin',
   'userRole': 'roles',
-  'chairType': 'chairs',
-  'tableType': 'tables',
-  'drinkType': 'drink-types',
-  'drink': 'drinks',
-  'dish': 'dishes',
   'room': 'rooms',
   'package': 'packages',
-  'dishType': 'dish-types',
-  'decorationType': 'decorations',
   'images': 'images',
   'token': 'token',
   'userStatus': 'status',
   'role': 'role',
   'items': 'items',
   'subcategory': 'subcategories',
+  'reservation': 'reservations',
   'category': 'categories'
 }
 

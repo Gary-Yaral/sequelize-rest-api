@@ -20,12 +20,36 @@ const Room = db.define(
       type: Sequelize.STRING,
       allowNull: false
     },
-    rent: {
-      type: Sequelize.DOUBLE,
+    description: {
+      type: Sequelize.STRING,
       allowNull: false
     },
     image: {
       type: Sequelize.STRING,
+      allowNull: false
+    },
+    m2: {
+      type: Sequelize.DOUBLE,
+      allowNull: false
+    },
+    perHour: {
+      type: Sequelize.DOUBLE,
+      allowNull: false
+    },
+    perDay: {
+      type: Sequelize.DOUBLE,
+      allowNull: false
+    },
+    perMonth: {
+      type: Sequelize.DOUBLE,
+      allowNull: false
+    },
+    capacity: {
+      type: Sequelize.DOUBLE,
+      allowNull: false
+    },
+    minTimeRent: {
+      type: Sequelize.DOUBLE,
       allowNull: false
     },
   },

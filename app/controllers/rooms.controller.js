@@ -1,8 +1,7 @@
 const sequelize = require('../database/config')
-const { Op } = require('sequelize')
-const Room = require('../models/roomModel')
+const { Op, where, col, cast} = require('sequelize')
+const Room = require('../models/room.model')
 const { deteleImage } = require('../utils/deleteFile')
-const { getErrorFormat } = require('../utils/errorsFormat')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -12,35 +11,25 @@ async function add(req, res) {
     if(user.id) {
       await transaction.commit() 
       return res.json({
-        result: true,
-        message: 'Registro agregado correctamente'
+        done: true,
+        msg: 'Local agregado correctamente'
       })
     }
     // SI NO SE INSERTÓ EL REGISTRO
     // eliminamos la imagen que guardamos
-    const imageWasDeleted = deteleImage(req.body.image) 
+    const hasError = deteleImage(req.body.image) 
     // Si no se pudo eliminar la imagen que guardamos devolvemos error
-    if(imageWasDeleted) {
+    if(hasError) {
       await transaction.rollback()
-      let errorName = 'image'
-      let errors = {...getErrorFormat(errorName, 'Error al eliminar imagen guardada', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
+      return res.json({ error: true, msg: 'Error al eliminar imagen guardada previamente' })
     }
-
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
-    let errorKeys = [ errorName ]
-    
     // Una vez eliminada la imagen deshacemos los cambios y devolvemos error
     await transaction.rollback()
-    return res.status(400).json({ errors, errorKeys })
+    return res.json({ error: true, msg: 'Error al guardar el local' })
   } catch (error) {
+    console.log(error)
     await transaction.rollback()
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al guardar registro', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    return res.json({ error: true, msg: 'Error al guardar datos del local' })
   }
 }
 
@@ -54,30 +43,25 @@ async function update(req, res) {
     // Actualizamos los datos
     await Room.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
-    if(req.body.currentImage) {
-      const imageWasDeleted = deteleImage(req.body.currentImage)  
+    if(req.body.found.image) {
+      const hasError = deteleImage(req.body.found.image)  
       // Si no se pudo eliminar la imagen que guardamos devolvemos error
-      if(imageWasDeleted) {
+      if(hasError) {
         await transaction.rollback()
-        let errorName = 'image'
-        let errors = {...getErrorFormat(errorName, 'Error al eliminar la imagen guardada', errorName) }
-        let errorKeys = [ errorName ]
-        return res.status(400).json({ errors, errorKeys })
+        return res.json({ error: true, msg: 'Error al eliminar imagenes anteriores' })
       }
     }
     // Retornamos el mensaje de que todo ha ido bien
     await transaction.commit() 
     return res.json({
-      result: true,
-      message: 'Registro actualizado correctamente'
+      done: true,
+      msg: 'Registro actualizado correctamente'
     })
     
   } catch (error) {
+    console.log(error)
     await transaction.rollback()
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al actualizar registro', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    return res.json({ error: true, msg: 'Error al actualizar datos del local' })
   }
 }
 
@@ -91,33 +75,24 @@ async function remove(req, res) {
     // Si no lo encontramos devolvemos meensaje de error
     if(affectedRows === 0) {
       await transaction.rollback()
-      let errorName = 'request'
-      let errors = {...getErrorFormat(errorName, 'Error al eliminar registro', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
+      return res.json({ error: true, msg: 'Error al eliminar local'})
     }
     // Si todo ha ido bien
-    const imageWasDeleted = deteleImage(image)
-    if(imageWasDeleted) {
+    const hasError = deteleImage(image)
+    if(hasError) {
       await transaction.rollback()
-      let errorName = 'image'
-      let errors = {...getErrorFormat(errorName, 'Error eliminar el registro', errorName) }
-      let errorKeys = [ errorName ]
-      return res.status(400).json({ errors, errorKeys })
+      return res.json({ error: true, msg: 'Error al eliminar las imagenes del local' })
     }
     // Guardamos los cambios en la base de datos
     await transaction.commit()
     // Retornamos mensjae de que todo ha ido bien
     return res.json({
-      result: true,
-      message: 'Registro eliminado correctamente'
+      done: true,
+      msg: 'Local eliminado correctamente'
     })
   } catch (error) {
     await transaction.rollback()
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al eliminar el registro', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    return res.json({ error: true, msg: 'Error al intentar eliminar el local' })
   }
 }
 
@@ -129,15 +104,9 @@ async function paginate(req, res) {
       limit: perPage,
       offset: (currentPage - 1) * perPage
     })
-    return res.json({
-      result: true,
-      data
-    })
+    return res.json({ result: true, data })
   } catch (error) {
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    return res.json({ error: true, msg: 'Error al paginar los locales' })
   }
 }
 
@@ -155,23 +124,31 @@ async function filterAndPaginate(req, res) {
       raw: true,
       where: {
         [Op.or]: [
-          { type: { [Op.like]: `%${filter}%` } },
-          { price: { [Op.eq]: filter } },
-          { description: { [Op.like]: `%${filter}%` } }
+          where(
+            cast(col('rent'), 'CHAR'), {[Op.like]: `%${filter}%`}
+          ),
+          { name: { [Op.like]: `%${filter}%` } },
+          { address: { [Op.like]: `%${filter}%` } },
+          { telephone: { [Op.like]: `%${filter}%` } },
+          { email: { [Op.like]: `%${filter}%` } }
         ]
       }
     }
     // Realizar la consulta con paginación y filtros
     const data = await Room.findAndCountAll(filterCondition)
-    return res.json({
-      result: true,
-      data
-    }) 
+    return res.json({ result: true, data }) 
   } catch(error) {
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    console.log(error)
+    return res.json({ error: true, msg: 'Error al filtrar y paginar los locales' })
+  }
+}
+
+async function getAll(req, res) {
+  try {
+    const rooms = await Room.findAll()
+    return res.json({ data: rooms })
+  } catch (error) {
+    return res.json({ error: true, msg: 'Error al listar todos los locales' })
   }
 }
 
@@ -179,6 +156,7 @@ module.exports = {
   add,
   update,
   remove,
+  getAll,
   paginate, 
   filterAndPaginate
 }

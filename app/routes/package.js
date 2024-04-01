@@ -8,7 +8,7 @@ const { packageValidator } = require('../validators/packageValidator')
 
 router.get('/', validateToken, packageController.paginate)
 router.get('/load/:id', validateToken, findId(Package), packageController.getSavedData)
-/* router.get('/list', validateToken, packageController.getAll) */
+router.get('/list', validateToken, packageController.getAll)
 router.get('/statuses', validateToken, packageController.getStatuses)
 /* router.get('/section/:id', validateToken, packageController.getSectionData) */
 router.get('/find/:id', validateToken, packageController.findOne)
