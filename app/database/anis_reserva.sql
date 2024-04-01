@@ -48,7 +48,7 @@ CREATE TABLE `item` (
 
 /*Data for the table `item` */
 
-insert  into `item`(`id`,`name`,`price`,`description`,`image`,`subcategoryId`) values (18,'DFSD',33,'dsds','DOS-1711930212211-cc68ca56-8b9f-4076-a328-1a10a4477590..jpg',7),(19,'GFDG',43,'fdgfg','UNO-1711930234753-beff5785-109c-4678-9cf0-a69b822a1416..jpg',3),(20,'PILSENER',1.5,'Cervez Pilsener','CERVEZA-1711975956774-53e1bc96-f472-4283-98a6-de31209553ea..jpg',8);
+insert  into `item`(`id`,`name`,`price`,`description`,`image`,`subcategoryId`) values (18,'DFSD',33,'dsds','DOS-1712005294067-ebcafd4f-2fea-42fd-82e2-b0af6ddf2fb4..jpg',7),(19,'GFDG',43,'fdgfg','UNO-1711930234753-beff5785-109c-4678-9cf0-a69b822a1416..jpg',3),(20,'PILSENER',1.5,'Cervez Pilsener','CERVEZA-1711975956774-53e1bc96-f472-4283-98a6-de31209553ea..jpg',8);
 
 /*Table structure for table `package` */
 
@@ -60,9 +60,9 @@ CREATE TABLE `package` (
   `status` int(11) NOT NULL,
   `userRoleId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `status` (`status`),
   KEY `idUsuario` (`userRoleId`),
-  CONSTRAINT `package_ibfk_3` FOREIGN KEY (`status`) REFERENCES `payment_status` (`id`) ON UPDATE CASCADE,
+  KEY `package_ibfk_3` (`status`),
+  CONSTRAINT `package_ibfk_3` FOREIGN KEY (`status`) REFERENCES `package_status` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `package_ibfk_4` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -92,26 +92,6 @@ CREATE TABLE `package_detail` (
 
 insert  into `package_detail`(`id`,`packageId`,`itemId`,`quantity`,`price`,`date`) values (18,55,18,1,33,'2024-04-01 12:51:06'),(20,56,20,3,1.5,'2024-04-01 13:00:29');
 
-/*Table structure for table `package_reservation` */
-
-DROP TABLE IF EXISTS `package_reservation`;
-
-CREATE TABLE `package_reservation` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `packageId` int(11) NOT NULL,
-  `reservationId` int(11) NOT NULL,
-  `userId` int(11) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `packageId` (`packageId`),
-  KEY `reservationId` (`reservationId`),
-  KEY `userId` (`userId`),
-  CONSTRAINT `package_reservation_ibfk_1` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `package_reservation_ibfk_2` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `package_reservation_ibfk_3` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `package_reservation` */
-
 /*Table structure for table `package_status` */
 
 DROP TABLE IF EXISTS `package_status`;
@@ -125,20 +105,6 @@ CREATE TABLE `package_status` (
 /*Data for the table `package_status` */
 
 insert  into `package_status`(`id`,`status`) values (1,'DISPONIBLE'),(2,'NO DISPONIBLE');
-
-/*Table structure for table `package_type` */
-
-DROP TABLE IF EXISTS `package_type`;
-
-CREATE TABLE `package_type` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `package_type` */
-
-insert  into `package_type`(`id`,`type`) values (1,'ADMINISTRADOR'),(2,'USUARIO');
 
 /*Table structure for table `payment` */
 
@@ -175,13 +141,38 @@ DROP TABLE IF EXISTS `reservation`;
 
 CREATE TABLE `reservation` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `datetime` datetime NOT NULL,
+  `date` date NOT NULL,
   `userId` int(11) NOT NULL,
-  `reservationStatusId` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  `initialTime` time NOT NULL,
+  `finalTime` time NOT NULL,
+  `roomId` int(11) NOT NULL,
+  `packageId` int(11) DEFAULT NULL,
+  `statusId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `statusId` (`statusId`),
+  KEY `roomId` (`roomId`),
+  CONSTRAINT `reservation_ibfk_1` FOREIGN KEY (`statusId`) REFERENCES `reservation_status` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
+
+/*Table structure for table `reservation_detail` */
+
+DROP TABLE IF EXISTS `reservation_detail`;
+
+CREATE TABLE `reservation_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `itemId` int(11) NOT NULL,
+  `quantity` double NOT NULL,
+  `price` double NOT NULL,
+  `reservationId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `reservationId` (`reservationId`),
+  CONSTRAINT `reservation_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `reservation_detail` */
 
 /*Table structure for table `reservation_status` */
 
@@ -195,7 +186,7 @@ CREATE TABLE `reservation_status` (
 
 /*Data for the table `reservation_status` */
 
-insert  into `reservation_status`(`id`,`status`) values (1,'ES ESPERA'),(2,'APROBADA'),(3,'RECHAZADA');
+insert  into `reservation_status`(`id`,`status`) values (1,'EN ESPERA'),(2,'APROBADA'),(3,'RECHAZADA');
 
 /*Table structure for table `role` */
 
@@ -235,7 +226,7 @@ CREATE TABLE `room` (
 
 /*Data for the table `room` */
 
-insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`perDay`,`perHour`,`perMonth`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','Local-1711993346289-a6d7230a-a55f-4cca-bff2-e01ccebd06c0..jpg',200,500,150,150,400,2);
+insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`perDay`,`perHour`,`perMonth`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','Local-1712005038933-6cc587d1-b7d8-4bc3-b51a-ec4165979821..jpg',200,500,150,150,400,2.5);
 
 /*Table structure for table `schedule` */
 
