@@ -43,10 +43,11 @@ async function update(req, res) {
     // Actualizamos los datos
     await Room.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
-    if(req.body.found.image) {
+    if(req.body.image) {
       const hasError = deteleImage(req.body.found.image)  
       // Si no se pudo eliminar la imagen que guardamos devolvemos error
       if(hasError) {
+        console.log(hasError)
         await transaction.rollback()
         return res.json({ error: true, msg: 'Error al eliminar imagenes anteriores' })
       }
@@ -125,11 +126,24 @@ async function filterAndPaginate(req, res) {
       where: {
         [Op.or]: [
           where(
-            cast(col('rent'), 'CHAR'), {[Op.like]: `%${filter}%`}
+            cast(col('m2'), 'CHAR'), {[Op.like]: `%${filter}%`}
+          ),
+          where(
+            cast(col('perDay'), 'CHAR'), {[Op.like]: `%${filter}%`}
+          ),
+          where(
+            cast(col('perHour'), 'CHAR'), {[Op.like]: `%${filter}%`}
+          ),
+          where(
+            cast(col('capacity'), 'CHAR'), {[Op.like]: `%${filter}%`}
+          ),
+          where(
+            cast(col('minTimeRent'), 'CHAR'), {[Op.like]: `%${filter}%`}
           ),
           { name: { [Op.like]: `%${filter}%` } },
           { address: { [Op.like]: `%${filter}%` } },
           { telephone: { [Op.like]: `%${filter}%` } },
+          { description: { [Op.like]: `%${filter}%` } },
           { email: { [Op.like]: `%${filter}%` } }
         ]
       }

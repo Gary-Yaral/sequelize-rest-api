@@ -46,7 +46,7 @@ async function update(req, res) {
     // Actualizamos los datos
     await Item.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
-    if(req.body.found.image) {
+    if(req.body.image) {
       const hasError = deteleImage(req.body.found.image)  
       // Si no se pudo eliminar la imagen que guardamos devolvemos error
       if(hasError) {

@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
       req.image = ''
     }
     const ext = path.extname(file.originalname)
-    const fileName = newImageName('Local', ext).filename
+    const fileName = newImageName('LOCAL', ext).filename
     req.body.image = fileName
     cb(null, fileName)
   }
