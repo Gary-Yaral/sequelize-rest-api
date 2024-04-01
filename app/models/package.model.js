@@ -1,6 +1,6 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
-const PackageStatus = require('./packageStatusModel')
+const PackageStatus = require('./packageStatus.model')
 const UserRole = require('./userRoleModel')
 
 const Package = db.define(

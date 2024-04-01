@@ -23,6 +23,7 @@ const routes = {
   'userStatus': 'status',
   'role': 'role',
   'items': 'items',
+  'subcategory': 'subcategories',
   'category': 'categories'
 }
 

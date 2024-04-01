@@ -1,10 +1,10 @@
 const sequelize = require('../database/config')
-const { Op, json } = require('sequelize')
-const ChairType = require('../models/chairTypeModel')
+const { Op, where, cast, col } = require('sequelize')
 const { deteleImage } = require('../utils/deleteFile')
 const { getErrorFormat } = require('../utils/errorsFormat')
 const Item = require('../models/item.model')
 const Category = require('../models/category.model')
+const Subcategory = require('../models/subcategory.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -13,29 +13,30 @@ async function add(req, res) {
       name: req.body.name.toUpperCase(),
       price: req.body.price,
       description: req.body.description,
-      categoryId: req.body.category,
+      subcategoryId: req.body.subcategoryId,
       image: req.body.image
     })
 
     if(created) {
+      transaction.commit()
       return res.json({done: true, msg: 'Item guardado correctamente'})
     } else {
       transaction.rollback()
       const hasError = deteleImage(req.body.image)
       if(hasError.error) {
-        return json({error: true, msg: hasError.message})
+        return res.json({error: true, msg: hasError.message})
       }
-      return json({error: true, msg: 'No se pudo guardar el item'})
+      return res.json({error: true, msg: 'No se pudo guardar el item'})
     }
   } catch (error) {
     console.log(error)
-    return json({error: true, msg: 'Error al guardar el item'})
+    return res.json({error: true, msg: 'Error al guardar el item'})
   }
 }
 
 async function update(req, res) {
   const transaction = await sequelize.transaction()
-  try { 
+  try {
     // Si no se envio una imagen la quitamos del body para que no actualice la imagen
     if(req.body.image === '' || !req.body.image) {
       delete req.body.image
@@ -45,15 +46,12 @@ async function update(req, res) {
     // Actualizamos los datos
     await Item.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
-    if(req.body.currentImage) {
-      const imageWasDeleted = deteleImage(req.body.currentImage)  
+    if(req.body.found.image) {
+      const hasError = deteleImage(req.body.found.image)  
       // Si no se pudo eliminar la imagen que guardamos devolvemos error
-      if(imageWasDeleted) {
+      if(hasError) {
         await transaction.rollback()
-        let errorName = 'image'
-        let errors = {...getErrorFormat(errorName, 'Error al eliminar la imagen guardada', errorName) }
-        let errorKeys = [ errorName ]
-        return res.status(400).json({ errors, errorKeys })
+        return res.status(400).json({ error: true, msg: 'Errors al eliminar la imagen previa' })
       }
     }
     // Retornamos el mensaje de que todo ha ido bien
@@ -102,12 +100,31 @@ async function remove(req, res) {
   }
 }
 
+async function findBySubcategory(req, res) {
+  try {
+    const found = await Item.findAll({
+      include: [ Subcategory ],
+      raw: true,
+      where: {
+        subcategoryId: req.params.id
+      }
+    })
+    return res.json({ data: found })
+  } catch (error) {
+    console.log(error)
+    return res.json({error: true, msg: 'No se pudo cargar los datos'})
+  }
+}
+
 async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
     const data = await Item.findAndCountAll({
-      include: [Category],
+      include: [{
+        model: Subcategory,
+        include: [Category]
+      }],
       raw: true,
       limit: perPage,
       offset: (currentPage - 1) * perPage
@@ -131,34 +148,40 @@ async function filterAndPaginate(req, res) {
 
     // Construir la condición de filtro
     const filterCondition = {
+      include: [{
+        model: Subcategory,
+        include: [Category]
+      }],
       limit: perPage,
       offset: (currentPage - 1) * perPage,
       raw: true,
       where: {
         [Op.or]: [
-          { type: { [Op.like]: `%${filter}%` } },
-          { price: { [Op.eq]: filter } },
+          where(
+            cast(col('price'), 'CHAR'), {[Op.like]: `%${filter}%`}
+          ),
+          { name: { [Op.like]: `%${filter}%` } },
+          { '$Subcategory.name$': { [Op.like]: `%${filter}%` } },
+          { '$Subcategory.Category.name$': { [Op.like]: `%${filter}%` } },
           { description: { [Op.like]: `%${filter}%` } }
         ]
       }
     }
     // Realizar la consulta con paginación y filtros
-    const data = await ChairType.findAndCountAll(filterCondition)
+    const data = await Item.findAndCountAll(filterCondition)
     return res.json({
       result: true,
       data
     }) 
   } catch(error) {
-    let errorName = 'request'
-    let errors = {...getErrorFormat(errorName, 'Error al consultar datos', errorName) }
-    let errorKeys = [errorName]
-    return res.status(400).json({ errors, errorKeys })
+    console.log(error)
+    return res.json({ error: true, msg: 'Error al filtrar los items' })
   }
 }
 
 async function getAll(req, res) {
   try {
-    const data = await ChairType.findAll()
+    const data = await Item.findAll()
     return res.json({
       result: true,
       data
@@ -176,6 +199,7 @@ module.exports = {
   update,
   remove,
   paginate, 
+  findBySubcategory,
   filterAndPaginate,
   getAll
 }

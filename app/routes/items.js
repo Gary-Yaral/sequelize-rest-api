@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
       req.image = ''
     }
     const ext = path.extname(file.originalname)
-    const fileName = newImageName(req.query.category, ext).filename
+    const fileName = newImageName(req.query.subcategory, ext).filename
     req.body.image = fileName
     cb(null, fileName)
   }
@@ -25,8 +25,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
+router.post('/filter', validateToken, itemController.filterAndPaginate)
 router.post('/', validateToken, upload.single('image'), itemValidator, itemController.add)
 router.get('/', validateToken, itemController.paginate)
+router.get('/subcategory/:id', validateToken, itemController.findBySubcategory)
 router.delete('/:id', validateToken, findId(Item), itemController.remove)
 router.put('/:id', validateToken, upload.single('image'), findId(Item), itemController.update)
 

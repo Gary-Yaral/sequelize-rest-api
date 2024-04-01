@@ -1,15 +1,15 @@
-const { Op } = require('sequelize')
 const sequelize = require('../database/config')
 const Category = require('../models/category.model')
-const { parentReferenceError } = require('../utils/functions')
+const Subcategory = require('../models/subcategory.model')
+const { Op } = require('sequelize')
 
 async function getAll(req, res) {
   try {
-    const categories = await Category.findAll()
-    return res.json({data: categories})
+    const subcategories = await Subcategory.findAll()
+    return res.json({data: subcategories})
   } catch (error) {
     console.log(error)
-    return res.json({error: true, msg: 'Error al cargar las categorías'})
+    return res.json({error: true, msg: 'Error al cargar las subcategorías'})
   }
 }
 
@@ -20,13 +20,13 @@ async function add(req, res) {
       name: req.body.name.toUpperCase(),
       categoryId: req.body.categoryId
     }
-    await Category.create(data, {transaction})
+    await Subcategory.create(data, {transaction})
     transaction.commit()
-    return res.json({done: true, msg: 'Categoría ha sido creada satisfactoriamente'})
+    return res.json({done: true, msg: 'Subcategoría ha sido creada satisfactoriamente'})
   } catch (error) {
     console.log(error)
     transaction.rollback()
-    return res.json({error: true, msg: 'Error al guardar la Categoría'})
+    return res.json({error: true, msg: 'Error al guardar la subcategoría'})
   }
 }
 
@@ -35,41 +35,53 @@ async function update(req, res) {
   try {
     const data = {
       name: req.body.name.toUpperCase(),
+      categoryId: req.body.categoryId
     }
-    await Category.update(data, {where: {id: req.params.id}}, {transaction})
+    await Subcategory.update(data, {where: {id: req.params.id}}, {transaction})
     transaction.commit()
-    return res.json({done: true, msg: 'Categoría ha sido actualizada satisfactoriamente'})
+    return res.json({done: true, msg: 'Subcategoría ha sido actualizada satisfactoriamente'})
   } catch (error) {
     console.log(error)
     transaction.rollback()
-    return res.json({error: true, msg: 'Error al actualizar la Categoría'})
+    return res.json({error: true, msg: 'Error al actualizar la subcategoría'})
   }
 }
 
 async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    await Category.destroy({where: {id: req.params.id}, transaction})
+    await Subcategory.destroy({where: {id: req.params.id}, transaction})
     transaction.commit()
-    return res.json({done: true, msg: 'Categoría ha sido actualizada satisfactoriamente'})
+    return res.json({done: true, msg: 'Subcategoría ha sido actualizada satisfactoriamente'})
   } catch (error) {
-    transaction.rollback()
-    const validation =  parentReferenceError(error)
-    if(validation.parent) {
-      return res.json({error: true, msg: validation.msg})
-    }
     console.log(error)
-    return res.json({error: true, msg: 'Error al actualizar la Categoría'})
+    transaction.rollback()
+    return res.json({error: true, msg: 'Error al actualizar la subcategoría'})
   }
 }
 
 async function find(req, res) {
   try {
-    const found = await Category.findOne({where: {id: req.params.id}})
+    const found = await Subcategory.findOne({where: {id: req.params.id}})
     return res.json({data: found})
   } catch (error) {
     console.log(error)
-    return res.json({error: true, msg: 'Error al buscar Categoría'})
+    return res.json({error: true, msg: 'Error al buscar subcategoría'})
+  }
+}
+
+async function findByCategory(req, res) {
+  try {
+    const found = await Subcategory.findAll({
+      include: [Category],
+      where: {
+        categoryId: req.params.id
+      }
+    })
+    return res.json({data: found})
+  } catch (error) {
+    console.log(error)
+    return res.json({error: true, msg: 'Error al buscar subcategoría'})
   }
 }
 
@@ -78,7 +90,8 @@ async function paginate(req, res) {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
     const offset = (currentPage - 1) * perPage
-    const found = await Category.findAndCountAll({
+    const found = await Subcategory.findAndCountAll({
+      include: [Category],
       offset,
       limit: perPage,
       raw: true
@@ -99,11 +112,13 @@ async function filterAndPaginate(req, res) {
     const currentPage = parseInt(req.body.currentPage)
     const perPage = parseInt(req.body.perPage)
     const offset = (currentPage - 1) * perPage
-    const found = await Category.findAndCountAll({
+    const found = await Subcategory.findAndCountAll({
+      include: [Category],
       offset,
       where: {
         [Op.or]: [
-          { name: { [Op.like]: `%${filter}%` } }
+          { name: { [Op.like]: `%${filter}%` } },
+          { '$Category.name$': { [Op.like]: `%${filter}%`} }
         ]
       },
       limit: perPage,
@@ -125,6 +140,7 @@ module.exports = {
   paginate,
   filterAndPaginate,
   remove,
+  findByCategory,
   find,
   getAll
 }

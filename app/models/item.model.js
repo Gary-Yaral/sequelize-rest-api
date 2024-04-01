@@ -1,6 +1,6 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
-const Category = require('./category.model')
+const Subcategory = require('./subcategory.model')
 
 const Item = db.define(
   'Item',
@@ -9,11 +9,11 @@ const Item = db.define(
       type: Sequelize.STRING,
       allowNull: false
     },
-    categoryId:  {
+    subcategoryId:  {
       type: Sequelize.NUMBER,
       allowNull: false,
       references: {
-        model: Category,
+        model: Subcategory,
         key: 'id',
       },
     },
@@ -35,9 +35,12 @@ const Item = db.define(
     timestamps: false
   } 
 )
+
+const foreignKey = 'subcategoryId'
+
 // Establecemos las relaciones entre modelos
-Category.hasMany(Item, { foreignKey: 'categoryId' })
-Item.belongsTo(Category, { foreignKey: 'categoryId' })
+Subcategory.hasMany(Item, { foreignKey })
+Item.belongsTo(Subcategory, { foreignKey })
 
 Item.sync()
   .then(() => {

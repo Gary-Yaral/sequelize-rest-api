@@ -22,4 +22,22 @@ async function findRepeatedUser(req, data) {
   }
 }
 
-module.exports = { findRepeatedUser }
+function parentReferenceError(error) {
+  if(error.parent) {
+    if(error.parent.errno && error.parent.errno === 1451) {
+      return {
+        parent: true,
+        msg: 'No es posible eliminar este registro, tiene campos vinculados'
+      }
+    }
+  }
+  return {
+    parent: false,
+    msg: ''
+  }
+}
+
+module.exports = { 
+  parentReferenceError,
+  findRepeatedUser 
+}

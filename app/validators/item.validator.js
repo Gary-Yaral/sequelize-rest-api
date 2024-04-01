@@ -18,7 +18,9 @@ const itemValidator = [
     .exists().withMessage(customMessages['required'])
     .isNumeric().withMessage(customMessages['price'])
     .notEmpty().withMessage(customMessages['empty']),
-  check('category')
+  check('categoryId')
+    .exists().withMessage(customMessages['required']),
+  check('subcategoryId')
     .exists().withMessage(customMessages['required']),
   check('image')
     .optional()
@@ -41,7 +43,7 @@ async function isRepeated(req) {
     let found = await Item.findAll({
       where: {
         name: req.body.name,
-        categoryId: req.body.category
+        subcategoryId: req.body.subcategoryId
       }
     })
     // Si no existe aun la respuesta será ok
@@ -53,7 +55,7 @@ async function isRepeated(req) {
     }
     // Verificamos si esta actualizando o no
     if(req.method === 'PUT' && req.params.id) {
-      if(parseInt(req.params.id) === req.packData.userRoleId) {
+      if(parseInt(req.params.id) === found[0].id) {
         return {
           isValid: true,
           msg: ''
@@ -99,7 +101,7 @@ async function isRepeated(req) {
     }
     return {
       isValid: false,
-      msg: 'Error al validar el paquete con el nombre: '+req.packData.name 
+      msg: 'Error al validar el item con el nombre: '+req.packData.name 
     }
   }
 }
