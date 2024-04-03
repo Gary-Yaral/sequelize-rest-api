@@ -59,16 +59,17 @@ CREATE TABLE `package` (
   `name` varchar(255) NOT NULL,
   `status` int(11) NOT NULL,
   `userRoleId` int(11) NOT NULL,
+  `lastUpdate` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idUsuario` (`userRoleId`),
   KEY `package_ibfk_3` (`status`),
   CONSTRAINT `package_ibfk_3` FOREIGN KEY (`status`) REFERENCES `package_status` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `package_ibfk_4` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=66 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `package` */
 
-insert  into `package`(`id`,`name`,`status`,`userRoleId`) values (55,'PAQUETE 1',1,10),(56,'PAQUETE 2',1,10);
+insert  into `package`(`id`,`name`,`status`,`userRoleId`,`lastUpdate`) values (65,'PAQUETE 5',1,10,'2024-04-02 21:12:02');
 
 /*Table structure for table `package_detail` */
 
@@ -80,17 +81,16 @@ CREATE TABLE `package_detail` (
   `itemId` int(11) DEFAULT NULL,
   `quantity` double NOT NULL,
   `price` double NOT NULL,
-  `date` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `itemId` (`itemId`),
   KEY `package_detail_ibfk_1` (`packageId`),
   CONSTRAINT `package_detail_ibfk_1` FOREIGN KEY (`packageId`) REFERENCES `package` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `package_detail_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `package_detail` */
 
-insert  into `package_detail`(`id`,`packageId`,`itemId`,`quantity`,`price`,`date`) values (18,55,18,1,33,'2024-04-01 12:51:06'),(20,56,20,3,1.5,'2024-04-01 13:00:29');
+insert  into `package_detail`(`id`,`packageId`,`itemId`,`quantity`,`price`) values (18,65,18,1,33);
 
 /*Table structure for table `package_status` */
 
@@ -142,20 +142,26 @@ DROP TABLE IF EXISTS `reservation`;
 CREATE TABLE `reservation` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `date` date NOT NULL,
-  `userId` int(11) NOT NULL,
+  `userRoleId` int(11) NOT NULL,
   `initialTime` time NOT NULL,
   `finalTime` time NOT NULL,
   `roomId` int(11) NOT NULL,
   `packageId` int(11) DEFAULT NULL,
   `statusId` int(11) NOT NULL,
+  `currentDate` date NOT NULL,
+  `rent` double DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `statusId` (`statusId`),
   KEY `roomId` (`roomId`),
+  KEY `userRoleId` (`userRoleId`),
   CONSTRAINT `reservation_ibfk_1` FOREIGN KEY (`statusId`) REFERENCES `reservation_status` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
+
+insert  into `reservation`(`id`,`date`,`userRoleId`,`initialTime`,`finalTime`,`roomId`,`packageId`,`statusId`,`currentDate`,`rent`) values (3,'2024-04-11',10,'01:30:00','05:30:00',7,65,1,'2024-04-02',45),(4,'2024-04-19',10,'01:00:00','12:00:00',7,65,1,'2024-04-02',150);
 
 /*Table structure for table `reservation_detail` */
 
@@ -169,10 +175,14 @@ CREATE TABLE `reservation_detail` (
   `reservationId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `reservationId` (`reservationId`),
-  CONSTRAINT `reservation_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `itemId` (`itemId`),
+  CONSTRAINT `reservation_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `reservation_detail_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_detail` */
+
+insert  into `reservation_detail`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (1,18,3,2,3),(2,18,4,3,3);
 
 /*Table structure for table `reservation_status` */
 
