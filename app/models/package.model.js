@@ -2,6 +2,7 @@ const db = require('../database/config')
 const Sequelize = require('sequelize')
 const PackageStatus = require('./packageStatus.model')
 const UserRole = require('./userRoleModel')
+const { getCurrentDate } = require('../utils/functions')
 
 const Package = db.define(
   'Package',
@@ -9,6 +10,11 @@ const Package = db.define(
     name:  {
       type: Sequelize.STRING,
       allowNull: true
+    },
+    lastUpdate:  {
+      type: Sequelize.DataTypes.DATE,
+      allowNull: false,
+      defaultValue: getCurrentDate()
     },
     status:{
       type: Sequelize.INTEGER,

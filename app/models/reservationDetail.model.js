@@ -1,16 +1,16 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
 const Item = require('./item.model')
-const Package = require('./package.model')
+const Reservation = require('./reservation.model')
 
-const PackageDetail = db.define(
-  'PackageDetail',
+const ReservationDetail = db.define(
+  'ReservationDetail',
   {
-    packageId:{
+    reservationId:{
       type: Sequelize.INTEGER,
       allowNull: false,
       refrences: {
-        model: Package,
+        model: Reservation,
         key: ['id']
       }
     },
@@ -32,26 +32,22 @@ const PackageDetail = db.define(
     }
   },
   { 
-    tableName: 'package_detail',
+    tableName: 'reservation_detail',
     timestamps: false
   } 
 )
 
-const packForeignKey = 'packageId' 
+const packForeignKey = 'reservationId' 
 // Creamos las relaciones entre modelos
-Package.hasMany(PackageDetail, { foreignKey: packForeignKey })
-PackageDetail.belongsTo(Package, { foreignKey: packForeignKey })
+Reservation.hasMany(ReservationDetail, { foreignKey: packForeignKey })
+ReservationDetail.belongsTo(Reservation, { foreignKey: packForeignKey })
 
-const itemForeignKey = 'itemId' 
-Item.hasMany(PackageDetail, { foreignKey: itemForeignKey })
-PackageDetail.belongsTo(Item, { foreignKey: itemForeignKey })
-
-PackageDetail.sync()
+ReservationDetail.sync()
   .then(() => {
-    console.log('PackageDetail table has been synchronized')
+    console.log('ReservationDetail table has been synchronized')
   })
   .catch((err) => {
     console.log(err)
   })
 
-module.exports = PackageDetail
+module.exports = ReservationDetail

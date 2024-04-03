@@ -3,7 +3,7 @@ const reservationController = require('../controllers/reservation.controller')
 const { validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 const { findId } = require('../middlewares/findId')
-const { roomValidator } = require('../validators/room.validator')
+/* const { roomValidator } = require('../validators/room.validator') */
 const Room = require('../models/room.model')
 
 router.get('/list', validateToken, reservationController.getAll)

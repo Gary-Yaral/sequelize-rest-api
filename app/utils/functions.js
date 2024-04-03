@@ -37,7 +37,12 @@ function parentReferenceError(error) {
   }
 }
 
+function getCurrentDate() {
+  return new Date()
+}
+
 module.exports = { 
   parentReferenceError,
-  findRepeatedUser 
+  findRepeatedUser,
+  getCurrentDate
 }

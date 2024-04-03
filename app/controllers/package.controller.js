@@ -22,15 +22,13 @@ async function add(req, res) {
       transaction.rollback()
       return res.json({ error: true, msg: 'Error al guardar el paquete: ' + req.body.name})
     }
-    const currentDate = new Date()
     // Añadimos el id del paquete a todos los elementos y los tranformamos
     req.body.items = req.body.items.map((item) => {
       return {
         packageId: createdPackage.id,
         itemId: item.id,
         price: item.price,
-        quantity: item.quantity,
-        date: currentDate
+        quantity: item.quantity
       }
     })
     // Hacemos los inserciones
@@ -65,14 +63,11 @@ async function update(req, res) {
 
     // Eliminamos los registros que ya tenia
     await PackageDetail.destroy({ where: { packageId: req.params.id }, transaction})
-    // Obtenemos la fecha actual
-    const currentDate = new Date()
     // Añadimos el id del paquete a todos los elementos y los tranformamos
     req.body.items = req.body.items.map((item) => {
       return {
         itemId: item.id,
         packageId: req.params.id,
-        date: currentDate,
         ...item
       }
     })
