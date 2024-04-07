@@ -143,25 +143,25 @@ CREATE TABLE `reservation` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `date` date NOT NULL,
   `userRoleId` int(11) NOT NULL,
-  `initialTime` time NOT NULL,
-  `finalTime` time NOT NULL,
   `roomId` int(11) NOT NULL,
   `packageId` int(11) DEFAULT NULL,
   `statusId` int(11) NOT NULL,
   `currentDate` date NOT NULL,
-  `rent` double DEFAULT NULL,
+  `timeTipeId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `statusId` (`statusId`),
   KEY `roomId` (`roomId`),
   KEY `userRoleId` (`userRoleId`),
+  KEY `reservation_ibfk_4` (`timeTipeId`),
   CONSTRAINT `reservation_ibfk_1` FOREIGN KEY (`statusId`) REFERENCES `reservation_status` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE
+  CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`timeTipeId`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
 
-insert  into `reservation`(`id`,`date`,`userRoleId`,`initialTime`,`finalTime`,`roomId`,`packageId`,`statusId`,`currentDate`,`rent`) values (3,'2024-04-11',10,'01:30:00','05:30:00',7,65,1,'2024-04-02',45),(4,'2024-04-19',10,'01:00:00','12:00:00',7,65,1,'2024-04-02',150);
+insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`timeTipeId`) values (3,'2024-04-11',10,7,65,1,'2024-04-02',1),(4,'2024-04-19',10,7,0,1,'2024-04-02',2);
 
 /*Table structure for table `reservation_detail` */
 
@@ -198,6 +198,24 @@ CREATE TABLE `reservation_status` (
 
 insert  into `reservation_status`(`id`,`status`) values (1,'EN ESPERA'),(2,'APROBADA'),(3,'RECHAZADA');
 
+/*Table structure for table `reservation_time_detail` */
+
+DROP TABLE IF EXISTS `reservation_time_detail`;
+
+CREATE TABLE `reservation_time_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `reservationId` int(11) NOT NULL,
+  `initialTime` time NOT NULL,
+  `finalTime` time NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `reservationId` (`reservationId`),
+  CONSTRAINT `reservation_time_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `reservation_time_detail` */
+
+insert  into `reservation_time_detail`(`id`,`reservationId`,`initialTime`,`finalTime`) values (1,3,'01:30:00','05:00:00');
+
 /*Table structure for table `role` */
 
 DROP TABLE IF EXISTS `role`;
@@ -226,9 +244,6 @@ CREATE TABLE `room` (
   `description` varchar(1000) NOT NULL,
   `image` varchar(500) NOT NULL,
   `m2` double NOT NULL,
-  `perDay` double NOT NULL,
-  `perHour` double NOT NULL,
-  `perMonth` double NOT NULL,
   `capacity` double NOT NULL,
   `minTimeRent` double NOT NULL,
   PRIMARY KEY (`id`)
@@ -236,7 +251,41 @@ CREATE TABLE `room` (
 
 /*Data for the table `room` */
 
-insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`perDay`,`perHour`,`perMonth`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','Local-1712005038933-6cc587d1-b7d8-4bc3-b51a-ec4165979821..jpg',200,500,150,150,400,2.5);
+insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','Local-1712005038933-6cc587d1-b7d8-4bc3-b51a-ec4165979821..jpg',200,400,2.5);
+
+/*Table structure for table `room_time_detail` */
+
+DROP TABLE IF EXISTS `room_time_detail`;
+
+CREATE TABLE `room_time_detail` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roomId` int(11) NOT NULL,
+  `timeType` int(11) NOT NULL,
+  `price` double NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `roomId` (`roomId`),
+  KEY `timeType` (`timeType`),
+  CONSTRAINT `room_time_detail_ibfk_1` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `room_time_detail_ibfk_2` FOREIGN KEY (`timeType`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `room_time_detail` */
+
+insert  into `room_time_detail`(`id`,`roomId`,`timeType`,`price`) values (1,7,1,50),(2,7,2,240),(3,7,3,1500);
+
+/*Table structure for table `room_time_type` */
+
+DROP TABLE IF EXISTS `room_time_type`;
+
+CREATE TABLE `room_time_type` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `room_time_type` */
+
+insert  into `room_time_type`(`id`,`type`) values (1,'POR HORA'),(2,'POR DIA'),(3,'POR MES');
 
 /*Table structure for table `schedule` */
 
@@ -266,6 +315,20 @@ CREATE TABLE `subcategory` (
 /*Data for the table `subcategory` */
 
 insert  into `subcategory`(`id`,`name`,`categoryId`) values (3,'UNO',2),(7,'DOS',2),(8,'CERVEZA',3);
+
+/*Table structure for table `times_detail` */
+
+DROP TABLE IF EXISTS `times_detail`;
+
+CREATE TABLE `times_detail` (
+  `id` int(11) NOT NULL DEFAULT 0,
+  `itemId` int(11) NOT NULL,
+  `quantity` double NOT NULL,
+  `price` double NOT NULL,
+  `reservationId` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `times_detail` */
 
 /*Table structure for table `user` */
 
@@ -325,6 +388,79 @@ CREATE TABLE `user_status` (
 /*Data for the table `user_status` */
 
 insert  into `user_status`(`id`,`name`) values (1,'ACTIVO'),(2,'BLOQUEADO');
+
+/* Procedure structure for procedure `GetReservationsByPagination` */
+
+/*!50003 DROP PROCEDURE IF EXISTS  `GetReservationsByPagination` */;
+
+DELIMITER $$
+
+/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetReservationsByPagination`(IN offset_value INT, IN limit_value INT)
+BEGIN
+    SELECT 
+        r.id AS reservationId,
+        r.currentDate,
+        rtd.initialTime,
+        rtd.finalTime,
+        r.date,
+        r.timeTipeId,
+        r.packageId,
+        rs.status,
+        rm.capacity,
+        rm.image,
+        rm.m2,
+        CONCAT(u.name, ' ', u.lastname) AS userName,
+        rl.role,
+        rm.name AS roomName,
+        COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+        rtt.type,
+        COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+        CASE 
+            WHEN r.timeTipeId = 1 THEN 0
+            ELSE 1
+        END AS days,
+        CASE 
+            WHEN r.timeTipeId = 1 THEN 0
+            WHEN r.timeTipeId = 2 THEN 0
+            ELSE 1
+        END AS months,
+        rtdl.price,
+        CASE 
+            WHEN r.timeTipeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+            ELSE rtdl.price
+        END AS payPerLocal,
+        CASE 
+            WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+            ELSE 'SI'
+        END AS includePackage,
+        pk.name AS packageName
+    FROM 
+        reservation r
+    LEFT JOIN 
+        reservation_detail rd ON r.id = rd.reservationId
+    LEFT JOIN
+        room rm ON r.roomId = rm.id
+    LEFT JOIN
+        reservation_status rs ON r.statusId = rs.id
+    LEFT JOIN
+        reservation_time_detail rtd ON r.id = rtd.reservationId
+    LEFT JOIN
+        room_time_detail rtdl ON r.timeTipeId = rtdl.id AND r.roomId = rtdl.roomId
+    LEFT JOIN
+        room_time_type rtt ON rtdl.timeType = rtt.id
+    LEFT JOIN
+        user_roles ur ON r.userRoleId = ur.id
+    LEFT JOIN
+        USER u ON ur.userId = u.id
+    LEFT JOIN
+        role rl ON rl.id = ur.roleId
+    LEFT JOIN
+        package pk ON r.packageId = pk.id
+    GROUP BY 
+        r.id
+    LIMIT offset_value, limit_value;
+END */$$
+DELIMITER ;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

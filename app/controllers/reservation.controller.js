@@ -109,31 +109,10 @@ async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
-    let data = await Reservation.findAll({
-      include: [
-        ReservationStatus,
-        Room,
-        ReservationDetail,
-        {
-          model: UserRoles,
-          include: [User]
-        }
-      ],
-      limit: perPage,
-      offset: (currentPage - 1) * perPage
-    })
-
-    data = data.map((row) => {
-      row.dataValues.total = row.dataValues.ReservationDetails.reduce((acc, curr) => {
-        return acc + (curr.dataValues.price * curr.dataValues.quantity) 
-      }, 0)
-      row.dataValues['ReservationStatus.id'] = row.dataValues.ReservationStatus.id
-      row.dataValues['ReservationStatus.status'] = row.dataValues.ReservationStatus.status
-      delete row.dataValues.ReservationStatus
-      delete row.dataValues.ReservationDetails
-      return row
-    })
-    return res.json({ result: true, data: {count: data.length, rows: data}})
+    const offset = (currentPage - 1) * perPage
+    let query = `CALL GetReservationsByPagination(${offset}, ${perPage})`
+    let rows = await sequelize.query(query)
+    return res.json({ result: true, data: {count: rows.length, rows}})
   } catch (error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al paginar las reservaciones' })
