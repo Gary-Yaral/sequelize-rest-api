@@ -147,21 +147,21 @@ CREATE TABLE `reservation` (
   `packageId` int(11) DEFAULT NULL,
   `statusId` int(11) NOT NULL,
   `currentDate` date NOT NULL,
-  `timeTipeId` int(11) NOT NULL,
+  `timeTypeId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `statusId` (`statusId`),
   KEY `roomId` (`roomId`),
   KEY `userRoleId` (`userRoleId`),
-  KEY `reservation_ibfk_4` (`timeTipeId`),
+  KEY `reservation_ibfk_4` (`timeTypeId`),
   CONSTRAINT `reservation_ibfk_1` FOREIGN KEY (`statusId`) REFERENCES `reservation_status` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`timeTipeId`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
+  CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`timeTypeId`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
 
-insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`timeTipeId`) values (3,'2024-04-11',10,7,65,1,'2024-04-02',1),(4,'2024-04-19',10,7,0,1,'2024-04-02',2);
+insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`timeTypeId`) values (3,'2024-03-06',10,7,65,1,'2024-04-02',1),(4,'2024-04-19',10,7,0,1,'2024-04-02',2);
 
 /*Table structure for table `reservation_detail` */
 
@@ -389,6 +389,193 @@ CREATE TABLE `user_status` (
 
 insert  into `user_status`(`id`,`name`) values (1,'ACTIVO'),(2,'BLOQUEADO');
 
+/* Procedure structure for procedure `CountReservationsByFilter` */
+
+/*!50003 DROP PROCEDURE IF EXISTS  `CountReservationsByFilter` */;
+
+DELIMITER $$
+
+/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `CountReservationsByFilter`(IN filter VARCHAR(500))
+SELECT COUNT(*) AS `count`
+	FROM (
+	SELECT 
+		r.id AS reservationId,
+		r.currentDate,
+		rtd.initialTime,
+		rtd.finalTime,
+		r.date,
+		r.timeTypeId,
+		r.packageId,
+		rs.status,
+		rm.capacity,
+		rm.image,
+		rm.m2,
+		CONCAT(u.name, ' ', u.lastname) AS userName,
+		rl.role,
+		rm.name AS roomName,
+		COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+		rtt.type,
+		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+		CASE 
+		    WHEN r.timeTypeId = 1 THEN 0
+		    ELSE 1
+		END AS days,
+		CASE 
+		    WHEN r.timeTypeId = 1 THEN 0
+		    WHEN r.timeTypeId = 2 THEN 0
+		    ELSE 1
+		END AS months,
+		rtdl.price,
+		CASE 
+		    WHEN r.timeTypeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+		    ELSE rtdl.price
+		END AS payPerLocal,
+		CASE 
+		    WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+		    ELSE 'SI'
+		END AS includePackage,
+		pk.name AS packageName
+	    FROM 
+		reservation r
+	    LEFT JOIN 
+		reservation_detail rd ON r.id = rd.reservationId
+	    LEFT JOIN
+		room rm ON r.roomId = rm.id
+	    LEFT JOIN
+		reservation_status rs ON r.statusId = rs.id
+	    LEFT JOIN
+		reservation_time_detail rtd ON r.id = rtd.reservationId
+	    LEFT JOIN
+		room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
+	    LEFT JOIN
+		room_time_type rtt ON rtdl.timeType = rtt.id
+	    LEFT JOIN
+		user_roles ur ON r.userRoleId = ur.id
+	    LEFT JOIN
+		USER u ON ur.userId = u.id
+	    LEFT JOIN
+		role rl ON rl.id = ur.roleId
+	    LEFT JOIN
+		package pk ON r.packageId = pk.id
+	    GROUP BY 
+		r.id
+	) AS subquery
+	WHERE 
+		subquery.currentDate LIKE CONCAT('%', filter, '%') OR
+		subquery.initialTime LIKE CONCAT('%', filter, '%') OR
+		subquery.finalTime LIKE CONCAT('%', filter, '%') OR
+		subquery.date LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.status) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		subquery.capacity LIKE CONCAT('%', filter, '%') OR
+		subquery.m2 LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.userName) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.role) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.roomName) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.payPerPackage) LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.type) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		subquery.hours LIKE CONCAT('%', filter, '%') OR
+		subquery.days LIKE CONCAT('%', filter, '%') OR
+		subquery.months LIKE CONCAT('%', filter, '%') OR
+		subquery.price LIKE CONCAT('%', filter, '%') OR
+		subquery.payPerLocal LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.includePackage) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.packageName) LIKE LOWER(CONCAT('%', filter, '%')) */$$
+DELIMITER ;
+
+/* Procedure structure for procedure `GetReservationsByFilterPagination` */
+
+/*!50003 DROP PROCEDURE IF EXISTS  `GetReservationsByFilterPagination` */;
+
+DELIMITER $$
+
+/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetReservationsByFilterPagination`(IN limit_value INT, offset_value INT, IN filter VARCHAR(500))
+SELECT *
+	FROM (
+	SELECT 
+		r.id AS reservationId,
+		r.currentDate,
+		rtd.initialTime,
+		rtd.finalTime,
+		r.date,
+		r.timeTypeId,
+		r.packageId,
+		rs.status,
+		rm.capacity,
+		rm.image,
+		rm.m2,
+		CONCAT(u.name, ' ', u.lastname) AS userName,
+		rl.role,
+		rm.name AS roomName,
+		COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+		rtt.type,
+		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+		CASE 
+		    WHEN r.timeTypeId = 1 THEN 0
+		    ELSE 1
+		END AS days,
+		CASE 
+		    WHEN r.timeTypeId = 1 THEN 0
+		    WHEN r.timeTypeId = 2 THEN 0
+		    ELSE 1
+		END AS months,
+		rtdl.price,
+		CASE 
+		    WHEN r.timeTypeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+		    ELSE rtdl.price
+		END AS payPerLocal,
+		CASE 
+		    WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+		    ELSE 'SI'
+		END AS includePackage,
+		pk.name AS packageName
+	    FROM 
+		reservation r
+	    LEFT JOIN 
+		reservation_detail rd ON r.id = rd.reservationId
+	    LEFT JOIN
+		room rm ON r.roomId = rm.id
+	    LEFT JOIN
+		reservation_status rs ON r.statusId = rs.id
+	    LEFT JOIN
+		reservation_time_detail rtd ON r.id = rtd.reservationId
+	    LEFT JOIN
+		room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
+	    LEFT JOIN
+		room_time_type rtt ON rtdl.timeType = rtt.id
+	    LEFT JOIN
+		user_roles ur ON r.userRoleId = ur.id
+	    LEFT JOIN
+		USER u ON ur.userId = u.id
+	    LEFT JOIN
+		role rl ON rl.id = ur.roleId
+	    LEFT JOIN
+		package pk ON r.packageId = pk.id
+	    GROUP BY 
+		r.id
+	) AS subquery
+	WHERE 
+		subquery.currentDate LIKE CONCAT('%', filter, '%') OR
+		subquery.initialTime LIKE CONCAT('%', filter, '%') OR
+		subquery.finalTime LIKE CONCAT('%', filter, '%') OR
+		subquery.date LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.status) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		subquery.capacity LIKE CONCAT('%', filter, '%') OR
+		subquery.m2 LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.userName) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.role) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.roomName) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.payPerPackage) LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.type) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		subquery.hours LIKE CONCAT('%', filter, '%') OR
+		subquery.days LIKE CONCAT('%', filter, '%') OR
+		subquery.months LIKE CONCAT('%', filter, '%') OR
+		subquery.price LIKE CONCAT('%', filter, '%') OR
+		subquery.payPerLocal LIKE CONCAT('%', filter, '%') OR
+		LOWER(subquery.includePackage) LIKE LOWER(CONCAT('%', filter, '%')) OR
+		LOWER(subquery.packageName) LIKE LOWER(CONCAT('%', filter, '%'))
+	LIMIT limit_value OFFSET offset_value */$$
+DELIMITER ;
+
 /* Procedure structure for procedure `GetReservationsByPagination` */
 
 /*!50003 DROP PROCEDURE IF EXISTS  `GetReservationsByPagination` */;
@@ -396,69 +583,69 @@ insert  into `user_status`(`id`,`name`) values (1,'ACTIVO'),(2,'BLOQUEADO');
 DELIMITER $$
 
 /*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetReservationsByPagination`(IN offset_value INT, IN limit_value INT)
-BEGIN
-    SELECT 
-        r.id AS reservationId,
-        r.currentDate,
-        rtd.initialTime,
-        rtd.finalTime,
-        r.date,
-        r.timeTipeId,
-        r.packageId,
-        rs.status,
-        rm.capacity,
-        rm.image,
-        rm.m2,
-        CONCAT(u.name, ' ', u.lastname) AS userName,
-        rl.role,
-        rm.name AS roomName,
-        COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
-        rtt.type,
-        COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
-        CASE 
-            WHEN r.timeTipeId = 1 THEN 0
-            ELSE 1
-        END AS days,
-        CASE 
-            WHEN r.timeTipeId = 1 THEN 0
-            WHEN r.timeTipeId = 2 THEN 0
-            ELSE 1
-        END AS months,
-        rtdl.price,
-        CASE 
-            WHEN r.timeTipeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
-            ELSE rtdl.price
-        END AS payPerLocal,
-        CASE 
-            WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
-            ELSE 'SI'
-        END AS includePackage,
-        pk.name AS packageName
-    FROM 
-        reservation r
-    LEFT JOIN 
-        reservation_detail rd ON r.id = rd.reservationId
-    LEFT JOIN
-        room rm ON r.roomId = rm.id
-    LEFT JOIN
-        reservation_status rs ON r.statusId = rs.id
-    LEFT JOIN
-        reservation_time_detail rtd ON r.id = rtd.reservationId
-    LEFT JOIN
-        room_time_detail rtdl ON r.timeTipeId = rtdl.id AND r.roomId = rtdl.roomId
-    LEFT JOIN
-        room_time_type rtt ON rtdl.timeType = rtt.id
-    LEFT JOIN
-        user_roles ur ON r.userRoleId = ur.id
-    LEFT JOIN
-        USER u ON ur.userId = u.id
-    LEFT JOIN
-        role rl ON rl.id = ur.roleId
-    LEFT JOIN
-        package pk ON r.packageId = pk.id
-    GROUP BY 
-        r.id
-    LIMIT offset_value, limit_value;
+BEGIN
+    SELECT 
+        r.id AS reservationId,
+        r.currentDate,
+        rtd.initialTime,
+        rtd.finalTime,
+        r.date,
+        r.timeTypeId,
+        r.packageId,
+        rs.status,
+        rm.capacity,
+        rm.image,
+        rm.m2,
+        CONCAT(u.name, ' ', u.lastname) AS userName,
+        rl.role,
+        rm.name AS roomName,
+        COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+        rtt.type,
+        COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+        CASE 
+            WHEN r.timeTypeId = 1 THEN 0
+            ELSE 1
+        END AS days,
+        CASE 
+            WHEN r.timeTypeId = 1 THEN 0
+            WHEN r.timeTypeId = 2 THEN 0
+            ELSE 1
+        END AS months,
+        rtdl.price,
+        CASE 
+            WHEN r.timeTypeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+            ELSE rtdl.price
+        END AS payPerLocal,
+        CASE 
+            WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+            ELSE 'SI'
+        END AS includePackage,
+        pk.name AS packageName
+    FROM 
+        reservation r
+    LEFT JOIN 
+        reservation_detail rd ON r.id = rd.reservationId
+    LEFT JOIN
+        room rm ON r.roomId = rm.id
+    LEFT JOIN
+        reservation_status rs ON r.statusId = rs.id
+    LEFT JOIN
+        reservation_time_detail rtd ON r.id = rtd.reservationId
+    LEFT JOIN
+        room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
+    LEFT JOIN
+        room_time_type rtt ON rtdl.timeType = rtt.id
+    LEFT JOIN
+        user_roles ur ON r.userRoleId = ur.id
+    LEFT JOIN
+        USER u ON ur.userId = u.id
+    LEFT JOIN
+        role rl ON rl.id = ur.roleId
+    LEFT JOIN
+        package pk ON r.packageId = pk.id
+    GROUP BY 
+        r.id
+    LIMIT offset_value, limit_value;
 END */$$
 DELIMITER ;
 

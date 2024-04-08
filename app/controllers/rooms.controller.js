@@ -2,6 +2,8 @@ const sequelize = require('../database/config')
 const { Op, where, col, cast} = require('sequelize')
 const Room = require('../models/room.model')
 const { deteleImage } = require('../utils/deleteFile')
+const RoomTimeDetail = require('../models/roomTimeDetail.model')
+const RoomTimeType = require('../models/roomTimeType.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -102,11 +104,17 @@ async function paginate(req, res) {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
     const data = await Room.findAndCountAll({
+      include: [{
+        model: RoomTimeDetail, 
+        include: [RoomTimeType]
+      }],
+      raw: true,
       limit: perPage,
       offset: (currentPage - 1) * perPage
     })
     return res.json({ result: true, data })
   } catch (error) {
+    console.log(error)
     return res.json({ error: true, msg: 'Error al paginar los locales' })
   }
 }
@@ -162,6 +170,7 @@ async function getAll(req, res) {
     const rooms = await Room.findAll()
     return res.json({ data: rooms })
   } catch (error) {
+    console.log(error)
     return res.json({ error: true, msg: 'Error al listar todos los locales' })
   }
 }

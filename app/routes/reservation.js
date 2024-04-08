@@ -7,6 +7,7 @@ const { findId } = require('../middlewares/findId')
 const Room = require('../models/room.model')
 
 router.get('/list', validateToken, reservationController.getAll)
+router.get('/types', validateToken, reservationController.getTypes)
 router.get('/', validateToken, reservationController.paginate)
 router.post('/', validateToken, reservationController.add)
 router.post('/filter', validateToken, reservationController.filterAndPaginate)

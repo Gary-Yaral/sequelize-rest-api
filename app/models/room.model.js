@@ -32,18 +32,6 @@ const Room = db.define(
       type: Sequelize.DOUBLE,
       allowNull: false
     },
-    perHour: {
-      type: Sequelize.DOUBLE,
-      allowNull: false
-    },
-    perDay: {
-      type: Sequelize.DOUBLE,
-      allowNull: false
-    },
-    perMonth: {
-      type: Sequelize.DOUBLE,
-      allowNull: false
-    },
     capacity: {
       type: Sequelize.DOUBLE,
       allowNull: false

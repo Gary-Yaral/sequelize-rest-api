@@ -1,13 +1,8 @@
 const sequelize = require('../database/config')
-const { Op, where, col, cast, fn, literal} = require('sequelize')
 const Reservation = require('../models/reservation.model')
 const { RESERVATION_STATUS } = require('../constants/db_constants')
-const ReservationStatus = require('../models/reservationStatus.model')
 const PackageDetail = require('../models/packageDetail.model')
-const UserRoles = require('../models/userRoleModel')
-const User = require('../models/userModel')
-const Room = require('../models/room.model')
-const ReservationDetail = require('../models/reservationDetail.model')
+const RoomTimeType = require('../models/roomTimeType.model')
 Reservation
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -125,27 +120,11 @@ async function filterAndPaginate(req, res) {
     // Parseamos los valores a números
     const currentPage = parseInt(req.body.currentPage)
     const perPage = parseInt(req.body.perPage)
-
-    // Construir la condición de filtro
-    const filterCondition = {
-      limit: perPage,
-      offset: (currentPage - 1) * perPage,
-      raw: true,
-      where: {
-        [Op.or]: [
-          where(
-            cast(col('rent'), 'CHAR'), {[Op.like]: `%${filter}%`}
-          ),
-          { name: { [Op.like]: `%${filter}%` } },
-          { address: { [Op.like]: `%${filter}%` } },
-          { telephone: { [Op.like]: `%${filter}%` } },
-          { email: { [Op.like]: `%${filter}%` } }
-        ]
-      }
-    }
+    const offset = (currentPage - 1) * perPage
     // Realizar la consulta con paginación y filtros
-    const data = await Reservation.findAndCountAll(filterCondition)
-    return res.json({ result: true, data }) 
+    const rows = await sequelize.query(`CALL GetReservationsByFilterPagination(${perPage}, ${offset}, '${filter}')`)
+    const count = await sequelize.query(`CALL CountReservationsByFilter('${filter}')`)
+    return res.json({ result: true, data: {count, rows} }) 
   } catch(error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al filtrar y paginar los locales' })
@@ -161,11 +140,21 @@ async function getAll(req, res) {
   }
 }
 
+async function getTypes(req, res) {
+  try {
+    const types = await RoomTimeType.findAll()
+    return res.json({ data: types })
+  } catch (error) {
+    return res.json({ error: true, msg: 'Error al listar todos los locales' })
+  }
+}
+
 module.exports = {
   add,
   update,
   remove,
   getAll,
   paginate, 
+  getTypes,
   filterAndPaginate
 }
