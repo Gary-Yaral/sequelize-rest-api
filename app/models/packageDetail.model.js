@@ -9,17 +9,17 @@ const PackageDetail = db.define(
     packageId:{
       type: Sequelize.INTEGER,
       allowNull: false,
-      refrences: {
+      references: {
         model: Package,
-        key: ['id']
+        key: 'id'
       }
     },
     itemId:{
       type: Sequelize.INTEGER,
       allowNull: false,
-      refrences: {
+      references: {
         model: Item,
-        key: ['id']
+        key: 'id'
       }
     },
     price: {

@@ -9,17 +9,17 @@ const ReservationDetail = db.define(
     reservationId:{
       type: Sequelize.INTEGER,
       allowNull: false,
-      refrences: {
+      references: {
         model: Reservation,
-        key: ['id']
+        key: 'id'
       }
     },
     itemId:{
       type: Sequelize.INTEGER,
       allowNull: false,
-      refrences: {
+      references: {
         model: Item,
-        key: ['id']
+        key: 'id'
       }
     },
     price: {
@@ -37,10 +37,14 @@ const ReservationDetail = db.define(
   } 
 )
 
-const packForeignKey = 'reservationId' 
 // Creamos las relaciones entre modelos
+const packForeignKey = 'reservationId' 
 Reservation.hasMany(ReservationDetail, { foreignKey: packForeignKey })
 ReservationDetail.belongsTo(Reservation, { foreignKey: packForeignKey })
+
+const itemForeignKey = 'itemId' 
+Item.hasMany(ReservationDetail, { foreignKey: itemForeignKey })
+ReservationDetail.belongsTo(Item, { foreignKey: itemForeignKey })
 
 ReservationDetail.sync()
   .then(() => {

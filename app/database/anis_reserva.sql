@@ -157,11 +157,11 @@ CREATE TABLE `reservation` (
   CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`timeTypeId`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
 
-insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`timeTypeId`) values (3,'2024-03-06',10,7,65,1,'2024-04-02',1),(4,'2024-04-19',10,7,0,1,'2024-04-02',2),(10,'2024-04-26',10,7,NULL,1,'2024-04-08',2),(11,'2024-03-07',10,7,NULL,1,'2024-04-08',2),(12,'2024-04-10',10,7,NULL,1,'2024-04-09',1);
+insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`timeTypeId`) values (3,'2024-03-06',10,7,65,1,'2024-04-02',1),(4,'2024-04-19',10,7,0,1,'2024-04-02',2),(14,'2024-04-11',10,7,NULL,1,'2024-04-09',2),(22,'2024-04-18',10,7,65,1,'2024-04-09',2),(23,'2024-03-06',10,7,NULL,1,'2024-04-09',1);
 
 /*Table structure for table `reservation_detail` */
 
@@ -176,13 +176,13 @@ CREATE TABLE `reservation_detail` (
   PRIMARY KEY (`id`),
   KEY `itemId` (`itemId`),
   KEY `reservation_detail_ibfk_1` (`reservationId`),
-  CONSTRAINT `reservation_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `reservation_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_detail_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_detail` */
 
-insert  into `reservation_detail`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (1,18,3,2,3),(2,18,4,3,3);
+insert  into `reservation_detail`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (1,18,3,2,3),(2,18,4,3,3),(18,18,1,33,22);
 
 /*Table structure for table `reservation_status` */
 
@@ -211,11 +211,11 @@ CREATE TABLE `reservation_time_detail` (
   PRIMARY KEY (`id`),
   KEY `reservation_time_detail_ibfk_1` (`reservationId`),
   CONSTRAINT `reservation_time_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_time_detail` */
 
-insert  into `reservation_time_detail`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (1,3,'01:30:00','05:00:00',40),(2,4,'00:00:00','23:30:00',250),(3,10,'00:00:00','23:30:00',240),(4,11,'00:00:00','23:30:00',240),(5,12,'08:00:00','12:00:00',50);
+insert  into `reservation_time_detail`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (1,3,'01:30:00','05:00:00',40),(2,4,'00:00:00','23:30:00',250),(7,14,'00:00:00','23:30:00',240),(15,22,'00:00:00','23:30:00',240),(16,23,'05:30:00','08:30:00',50);
 
 /*Table structure for table `role` */
 
@@ -400,7 +400,8 @@ DELIMITER $$
 SELECT COUNT(*) AS `count`
 	FROM (
 	SELECT 
-		r.id AS reservationId,
+		r.id,
+		r.roomId,
 		r.currentDate,
 		rtd.initialTime,
 		rtd.finalTime,
@@ -477,6 +478,26 @@ SELECT COUNT(*) AS `count`
 		LOWER(subquery.packageName) LIKE LOWER(CONCAT('%', filter, '%')) */$$
 DELIMITER ;
 
+/* Procedure structure for procedure `GetHours` */
+
+/*!50003 DROP PROCEDURE IF EXISTS  `GetHours` */;
+
+DELIMITER $$
+
+/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetHours`(IN room_id INT, IN found_date DATE, IN ini_time VARCHAR(100), IN fin_time VARCHAR(100))
+SELECT 
+		rtdl.id,
+		rtdl.reservationId,
+		case 
+		when rtdl.initialTime = '00:00' and rtdl.finalTime = '23:30' then '- Reservado todo el día'
+		else CONCAT('- ','Reservado de ', rtdl.initialTime, ' a ',rtdl.finalTime)
+		end as selected
+	FROM reservation_time_detail rtdl
+	INNER JOIN reservation r
+	ON r.id = rtdl.reservationId
+	WHERE r.date = found_date AND r.roomId = room_id AND (ini_time < rtdl.finalTime AND fin_time > rtdl.initialTime) */$$
+DELIMITER ;
+
 /* Procedure structure for procedure `GetReservationsByFilterPagination` */
 
 /*!50003 DROP PROCEDURE IF EXISTS  `GetReservationsByFilterPagination` */;
@@ -487,7 +508,8 @@ DELIMITER $$
 SELECT *
 	FROM (
 	SELECT 
-		r.id AS reservationId,
+		r.id,
+		r.roomId,
 		r.currentDate,
 		rtd.initialTime,
 		rtd.finalTime,
@@ -574,7 +596,8 @@ DELIMITER $$
 /*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetReservationsByPagination`(IN offset_value INT, IN limit_value INT)
 BEGIN
     SELECT 
-        r.id AS reservationId,
+        r.id,
+        r.roomId,
         r.currentDate,
         rtd.initialTime,
         rtd.finalTime,

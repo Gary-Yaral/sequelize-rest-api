@@ -25,6 +25,7 @@ async function add(req, res) {
       reservation.packageId = req.body.packageId
     }
 
+    let { roomId, date, initialTime, finalTime} = req.body
     // Si es reservacion por dia
     if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
       let found = await Reservation.findOne({
@@ -34,9 +35,11 @@ async function add(req, res) {
         }
       })
       if(found) {
+        transaction.rollback()
+        let selected = await getReservedHours(roomId, date, initialTime, finalTime)
         return res.json({
           error: true,
-          msg: 'No es posible reservar esa fecha todo el dia, debido a que ya han sido reservadas varias horas o todo el día'
+          msg: 'No es posible reservar esa fecha </br></br><b>Razones</b></br>' + selected.str
         })
       }
     } 
@@ -44,19 +47,19 @@ async function add(req, res) {
     if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_HOURS) {
       // VERIFICMOS QUE EL HORARIO ESTE DISPONIBLE
       let query = `CALL ValidateHours(
-        '${req.body.roomId}', 
-        '${req.body.date}', 
-        '${req.body.initialTime}', 
-        '${req.body.finalTime}'
+        '${roomId}', 
+        '${date}', 
+        '${initialTime}', 
+        '${finalTime}'
       )`
       let canRegister = await sequelize.query(query)
       // Si está ocupado no regitramos nada y retornamos
-      console.log(canRegister)
       if(canRegister[0].total !== 0) {
         transaction.rollback()
+        let selected = await getReservedHours(roomId, date, initialTime, finalTime)
         return res.json({
           error: true,
-          msg: 'El horario seleccionado ya esta ocupado'
+          msg: 'No es posible reservar esa fecha </br></br><b>Razones</b></br>' + selected.str
         })
       }
     } 
@@ -75,10 +78,10 @@ async function add(req, res) {
       transaction.rollback()
       return res.json({error: true, msg: 'Error al añadir horarios de la reservacion'})
     }
-
     // PROCESAMOS LOS DATOS DEL PAQUETE
     if(req.body.packageId) {
       let details = await getPackageDetails(req.body.packageId, created.id)
+      if(details.length === 0) { return res.json({error: true, msg: 'No hay items'})}
       let inserted = await ReservationDetail.bulkCreate(details, {transaction})
       if(!inserted) {
         await transaction.rollback() 
@@ -88,7 +91,7 @@ async function add(req, res) {
         })
       }
     }
-    // Si todo va bien guardamos los cambios
+    // SI TODO VA BIEN GUARDAMOS LOS CAMBIOS
     await transaction.commit()
     return res.json({ done: true, msg: 'Se ha creado la reservación correctamente. En espera de ser aprobada' })
   } catch (error) {
@@ -98,6 +101,21 @@ async function add(req, res) {
   }
 }
 
+async function getReservedHours(roomId, date, initialTime, finalTime) {
+  let times = await sequelize.query(`CALL GetHOurs('${roomId}','${date}','${initialTime}','${finalTime}')`)
+  let str = ''
+  times.forEach((time, i) => {
+    if(i !== 0) {
+      str += '</br>'+ time.selected
+    } else {
+      str += time.selected
+    }
+  })
+  return {
+    found: times,
+    str
+  }
+}
 
 async function createReservationTimeDetail(req, reservationId, transaction) {
   let roomDetail = await RoomTimeDetail.findOne({
@@ -128,26 +146,40 @@ async function getPackageDetails(packageId, reservationId) {
   })
 
   return itemsDetails.map((detail) => {
-    delete detail.packageId
-    detail.reservationId = reservationId
-    return detail
+    delete detail.dataValues.packageId
+    detail.dataValues.reservationId = reservationId
+    return detail.dataValues
   })
 }
 
 async function update(req, res) {
   const transaction = await sequelize.transaction()
   try { 
+    let { roomId, date,  initialTime, finalTime} = req.body
     // Si no se envio una imagen la quitamos del body para que no actualice la imagen
-    if(req.body.image === '' || !req.body.image) {
-      delete req.body.image
+    // Si es reservacion por dia
+    let selected = await getReservedHours(roomId, date, initialTime, finalTime)
+    console.log(selected)
+    if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
+      if(selected.found.length === 1) {
+        console.log(selected.found[0].reservationId)
+        if(selected.found[0].reservationId === parseInt(req.params.id)){
+          console.log('Puedo actulizar')
+        } else {
+          console.log('no se puede')
+        }
+      } else {
+        console.log('hay mas de uno y no se puede')
+      }
     }
-    // Actualizamos los datos
+    console.log(selected)
+    /* // Actualizamos los datos
     await Reservation.update(req.body, {where: {id: req.params.id}}, {transaction})
     // Eliminamos la imagen anterior usando su path
     // Retornamos el mensaje de que todo ha ido bien
-    await transaction.commit() 
+    await transaction.commit() */ 
     return res.json({
-      done: true,
+      error: true,
       msg: 'Registro actualizado correctamente'
     })
     
@@ -161,25 +193,28 @@ async function update(req, res) {
 async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    //Extraemos el id de registro encontrado
-    const { id } = req.body.found
-    // si existe lo eliminamos
-    const affectedRows = await Reservation.destroy({ where: { id }, transaction})
-    // Si no lo encontramos devolvemos meensaje de error
-    if(affectedRows === 0) {
-      await transaction.rollback()
-      return res.json({ error: true, msg: 'Error al eliminar local'})
+    // EXTRAEMOS TANTO EL ID COMO EL ESTADO DEL REGISTROS ENCONTRADO
+    const { id, statusId } = req.body.found
+    // SI SU ESTADO ESTÁ EN APROBADA NO SE PUEDE ELIMINAR A MENOS QUE SE CAMBIE DE ESTADO A PENDIENTE
+    if (statusId === RESERVATION_STATUS.APROBADA) {
+      return res.json({
+        done: true,
+        msg: 'No es posible eliminar esta reservacion porque está aprobada y tiene un pago pendiente'
+      })
     }
-    // Guardamos los cambios en la base de datos
+    // ELIMINIAMOS LA RESERVACION
+    await Reservation.destroy({ where: { id }, transaction})
+    // GUARDAMOS LOS CAMBIOS
     await transaction.commit()
-    // Retornamos mensjae de que todo ha ido bien
     return res.json({
       done: true,
-      msg: 'Local eliminado correctamente'
+      msg: 'Reservación ha sido eliminada correctamente',
+      data: {id, statusId}
     })
   } catch (error) {
+    console.log(error)
     await transaction.rollback()
-    return res.json({ error: true, msg: 'Error al intentar eliminar el local' })
+    return res.json({ error: true, msg: 'Error al intentar eliminar la reservación' })
   }
 }
 

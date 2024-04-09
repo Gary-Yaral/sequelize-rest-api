@@ -19,9 +19,9 @@ const Package = db.define(
     status:{
       type: Sequelize.INTEGER,
       allowNull: false,
-      refrences: {
+      references: {
         model: PackageStatus,
-        key: ['id']
+        key: 'id'
       }
     },
     userRoleId: {

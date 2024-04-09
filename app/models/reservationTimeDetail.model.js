@@ -8,7 +8,7 @@ const ReservationTImeDetail = db.define(
     reservationId:{
       type: Sequelize.INTEGER,
       allowNull: false,
-      refrences: {
+      references: {
         model: Reservation,
         key: ['id']
       }
