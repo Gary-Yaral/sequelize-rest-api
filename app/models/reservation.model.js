@@ -4,18 +4,11 @@ const ReservationStatus = require('./reservationStatus.model')
 const UserRole = require('./userRoleModel')
 const Room = require('./room.model')
 const { getCurrentDate } = require('../utils/functions')
+const RoomTimeType = require('./roomTimeType.model')
 
 const Reservation = db.define(
   'Reservation',
   {
-    initialTime:  {
-      type: Sequelize.STRING,
-      allowNull: true
-    },
-    finalTime:  {
-      type: Sequelize.STRING,
-      allowNull: true
-    },
     currentDate:  {
       type: Sequelize.DataTypes.DATE,
       allowNull: false,
@@ -52,6 +45,14 @@ const Reservation = db.define(
         model: ReservationStatus,
         key: 'id'
       }
+    },
+    timeTypeId: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      references: {
+        model: RoomTimeType,
+        key: 'id'
+      }
     }
   },
   { 
@@ -73,6 +74,10 @@ Reservation.belongsTo(UserRole, { foreignKey: foreignKeyUserRole })
 let foreignKeyRoom = 'roomId'
 Room.hasMany(Reservation, { foreignKey: foreignKeyRoom })
 Reservation.belongsTo(Room, { foreignKey: foreignKeyRoom })
+
+let foreignKeyTimeType = 'timeTypeId'
+RoomTimeType.hasMany(Reservation, { foreignKey: foreignKeyTimeType })
+Reservation.belongsTo(RoomTimeType, { foreignKey: foreignKeyTimeType })
 
 Reservation.sync()
   .then(() => {

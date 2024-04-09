@@ -1,17 +1,67 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
-const { RESERVATION_STATUS } = require('../constants/db_constants')
+const { RESERVATION_STATUS, RESERVATION_TIME_TYPE } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
 const RoomTimeType = require('../models/roomTimeType.model')
-Reservation
+const ReservationDetail = require('../models/reservationDetail.model')
+const RoomTimeDetail = require('../models/roomTimeDetail.model')
+const ReservationTimeDetail = require('../models/reservationTimeDetail.model')
+
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    /* AÑADIMOS LOS DATOS QUE NO VIENEN EN LA REQUEST */
-    req.body.statusId = RESERVATION_STATUS.EN_ESPERA // Estados de espera será por defecto
-    req.body.userRoleId = req.user.data.UserRole.id// Estados de espera será por defecto
-    
-    const created = await Reservation.create(req.body, {transaction})
+    /* CREAMOS LOS DATOS DE LA RESERVACION */
+    let reservation = {
+      statusId: RESERVATION_STATUS.EN_ESPERA,
+      userRoleId: req.user.data.UserRole.id,
+      roomId: req.body.roomId,
+      date: req.body.date,
+      currentDate: req.body.currentDate,
+      timeTypeId: req.body.timeTypeId
+    }
+
+    // AÑadimos LOS DATOS DEL PAQUETE
+    if(req.body.packageId) {
+      reservation.packageId = req.body.packageId
+    }
+
+    // Si es reservacion por dia
+    if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
+      let found = await Reservation.findOne({
+        where: {
+          roomId: req.body.roomId,
+          date: req.body.date
+        }
+      })
+      if(found) {
+        return res.json({
+          error: true,
+          msg: 'No es posible reservar esa fecha todo el dia, debido a que ya han sido reservadas varias horas o todo el día'
+        })
+      }
+    } 
+    // Si es reservacion por horas
+    if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_HOURS) {
+      // VERIFICMOS QUE EL HORARIO ESTE DISPONIBLE
+      let query = `CALL ValidateHours(
+        '${req.body.roomId}', 
+        '${req.body.date}', 
+        '${req.body.initialTime}', 
+        '${req.body.finalTime}'
+      )`
+      let canRegister = await sequelize.query(query)
+      // Si está ocupado no regitramos nada y retornamos
+      console.log(canRegister)
+      if(canRegister[0].total !== 0) {
+        transaction.rollback()
+        return res.json({
+          error: true,
+          msg: 'El horario seleccionado ya esta ocupado'
+        })
+      }
+    } 
+
+    const created = await Reservation.create(reservation, {transaction})
     /* SI HUBO ERROR AL CREAR RESERVACION */ 
     if(!created) {
       await transaction.rollback() 
@@ -20,19 +70,52 @@ async function add(req, res) {
         msg: 'Error al crear la reservación'
       })
     }
-    if(req.body.packageId) {
-      const details = await getPackageDetails(req.body.packageId)
-      console.log(details)
-      /* return res.json({ error: true, msg: details }) */
+    // SI TODO SALIO BIEN GUARDAMOS EL DETALLE DEL TIEMPO DE RESERVA
+    if(!await createReservationTimeDetail(req, created.id, transaction)){
+      transaction.rollback()
+      return res.json({error: true, msg: 'Error al añadir horarios de la reservacion'})
     }
-    /* SI LA RESERVACION SE CREÓ */
-    // Una vez eliminada la imagen deshacemos los cambios y devolvemos error
+
+    // PROCESAMOS LOS DATOS DEL PAQUETE
+    if(req.body.packageId) {
+      let details = await getPackageDetails(req.body.packageId, created.id)
+      let inserted = await ReservationDetail.bulkCreate(details, {transaction})
+      if(!inserted) {
+        await transaction.rollback() 
+        return res.json({
+          error: true,
+          msg: 'Error al guardar los datos del paquete de la reservacion'
+        })
+      }
+    }
+    // Si todo va bien guardamos los cambios
     await transaction.commit()
     return res.json({ done: true, msg: 'Se ha creado la reservación correctamente. En espera de ser aprobada' })
   } catch (error) {
     console.log(error)
     await transaction.rollback()
     return res.json({ error: true, msg: 'Error al guardar datos de la reservación' })
+  }
+}
+
+
+async function createReservationTimeDetail(req, reservationId, transaction) {
+  let roomDetail = await RoomTimeDetail.findOne({
+    where: {
+      roomId: req.body.roomId,
+      timeType: req.body.timeTypeId 
+    }
+  })
+  if(roomDetail) {
+    let detail = {
+      initialTime: req.body.initialTime,
+      finalTime: req.body.finalTime,
+      price: roomDetail.price,
+      reservationId
+    }
+    return await ReservationTimeDetail.create(detail ,{transaction})
+  } else {
+    transaction.rollback()
   }
 }
 
