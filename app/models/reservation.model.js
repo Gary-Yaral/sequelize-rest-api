@@ -4,7 +4,7 @@ const ReservationStatus = require('./reservationStatus.model')
 const UserRole = require('./userRoleModel')
 const Room = require('./room.model')
 const { getCurrentDate } = require('../utils/functions')
-const RoomTimeType = require('./roomTimeType.model')
+const ScheduleType = require('./sheduleType.model')
 
 const Reservation = db.define(
   'Reservation',
@@ -46,11 +46,11 @@ const Reservation = db.define(
         key: 'id'
       }
     },
-    timeTypeId: {
+    scheduleTypeId: {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: RoomTimeType,
+        model: ScheduleType,
         key: 'id'
       }
     }
@@ -75,9 +75,9 @@ let foreignKeyRoom = 'roomId'
 Room.hasMany(Reservation, { foreignKey: foreignKeyRoom })
 Reservation.belongsTo(Room, { foreignKey: foreignKeyRoom })
 
-let foreignKeyTimeType = 'timeTypeId'
-RoomTimeType.hasMany(Reservation, { foreignKey: foreignKeyTimeType })
-Reservation.belongsTo(RoomTimeType, { foreignKey: foreignKeyTimeType })
+let foreignScheduleType = 'scheduleTypeId'
+ScheduleType.hasMany(Reservation, { foreignKey: foreignScheduleType })
+Reservation.belongsTo(ScheduleType, { foreignKey: foreignScheduleType })
 
 Reservation.sync()
   .then(() => {

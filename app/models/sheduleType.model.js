@@ -1,8 +1,8 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
 
-const RoomTimeType = db.define(
-  'RoomTimeType',
+const ScheduleType = db.define(
+  'ScheduleType',
   {
     type: {
       type: Sequelize.STRING,
@@ -10,17 +10,17 @@ const RoomTimeType = db.define(
     }
   },
   { 
-    tableName: 'room_time_type',
+    tableName: 'schedule_type',
     timestamps: false
   } 
 )
 
-RoomTimeType.sync()
+ScheduleType.sync()
   .then(() => {
-    console.log('RoomTimeType table have been synchronized')
+    console.log('ScheduleType table have been synchronized')
   })
   .catch((err) => {
     console.log(err)
   })
 
-module.exports = RoomTimeType
+module.exports = ScheduleType

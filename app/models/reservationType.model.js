@@ -1,16 +1,16 @@
 const db = require('../database/config')
 const Sequelize = require('sequelize')
 const Room = require('./room.model')
-const RoomTimeType = require('./roomTimeType.model')
+const ScheduleType = require('./sheduleType.model')
 
-const RoomTimeDetail = db.define(
-  'RoomTimeDetail',
+const ReservationType = db.define(
+  'ReservationType',
   {
-    timeType: {
+    scheduleTypeId: {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: RoomTimeType,
+        model: ScheduleType,
         key: 'id'
       }
     },
@@ -28,26 +28,26 @@ const RoomTimeDetail = db.define(
     }
   },
   { 
-    tableName: 'room_time_detail',
+    tableName: 'reservation_Type',
     timestamps: false
   } 
 )
 
 // Creamos las relaciones
 let foreignKey = 'roomId'
-Room.hasMany(RoomTimeDetail, {foreignKey})
-RoomTimeDetail.belongsTo(Room, {foreignKey})
+Room.hasMany(ReservationType, {foreignKey})
+ReservationType.belongsTo(Room, {foreignKey})
 
-foreignKey = 'timeType'
-RoomTimeType.hasMany(RoomTimeDetail, {foreignKey})
-RoomTimeDetail.belongsTo(RoomTimeType, {foreignKey})
+foreignKey = 'scheduleTypeId'
+ScheduleType.hasMany(ReservationType, {foreignKey})
+ReservationType.belongsTo(ScheduleType, {foreignKey})
 
-RoomTimeDetail.sync()
+ReservationType.sync()
   .then(() => {
-    console.log('RoomTimeDetail table have been synchronized')
+    console.log('ReservationType table have been synchronized')
   })
   .catch((err) => {
     console.log(err)
   })
 
-module.exports = RoomTimeDetail
+module.exports = ReservationType

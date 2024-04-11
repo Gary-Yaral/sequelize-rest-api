@@ -1,11 +1,15 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
-const { RESERVATION_STATUS, RESERVATION_TIME_TYPE } = require('../constants/db_constants')
+const { Op, literal } = require('sequelize')
+const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
-const RoomTimeType = require('../models/roomTimeType.model')
-const ReservationDetail = require('../models/reservationDetail.model')
-const RoomTimeDetail = require('../models/roomTimeDetail.model')
-const ReservationTimeDetail = require('../models/reservationTimeDetail.model')
+const ScheduleType = require('../models/sheduleType.model')
+const ReservationPackage = require('../models/reservationPackage.model')
+const ReservationType = require('../models/reservationType.model')
+const ReservationSchedule = require('../models/reservationSchedule.model')
+const UserRoles = require('../models/userRoleModel')
+const User = require('../models/userModel')
+const Room = require('../models/room.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -17,7 +21,7 @@ async function add(req, res) {
       roomId: req.body.roomId,
       date: req.body.date,
       currentDate: req.body.currentDate,
-      timeTypeId: req.body.timeTypeId
+      scheduleTypeId: req.body.scheduleTypeId
     }
 
     // AÑadimos LOS DATOS DEL PAQUETE
@@ -26,70 +30,38 @@ async function add(req, res) {
     }
 
     let { roomId, date, initialTime, finalTime} = req.body
+    // Consultamos los horarios de esa fecha
+    let reservedSchedules = await getReservedHours(roomId, date, initialTime, finalTime)
+    // Si hay error retornamos inmediatamente
+    if(reservedSchedules.error) { 
+      await transaction.rollback()
+      return res.json(reservedSchedules)}
     // Si es reservacion por dia
-    if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
-      let found = await Reservation.findOne({
-        where: {
-          roomId: req.body.roomId,
-          date: req.body.date
-        }
-      })
-      if(found) {
-        transaction.rollback()
-        let selected = await getReservedHours(roomId, date, initialTime, finalTime)
-        return res.json({
-          error: true,
-          msg: 'No es posible reservar esa fecha </br></br><b>Razones</b></br>' + selected.str
-        })
-      }
-    } 
-    // Si es reservacion por horas
-    if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_HOURS) {
-      // VERIFICMOS QUE EL HORARIO ESTE DISPONIBLE
-      let query = `CALL ValidateHours(
-        '${roomId}', 
-        '${date}', 
-        '${initialTime}', 
-        '${finalTime}'
-      )`
-      let canRegister = await sequelize.query(query)
-      // Si está ocupado no regitramos nada y retornamos
-      if(canRegister[0].total !== 0) {
-        transaction.rollback()
-        let selected = await getReservedHours(roomId, date, initialTime, finalTime)
-        return res.json({
-          error: true,
-          msg: 'No es posible reservar esa fecha </br></br><b>Razones</b></br>' + selected.str
-        })
-      }
-    } 
-
-    const created = await Reservation.create(reservation, {transaction})
-    /* SI HUBO ERROR AL CREAR RESERVACION */ 
-    if(!created) {
-      await transaction.rollback() 
+    if(reservedSchedules.hours.length > 0) {
+      await transaction.rollback()
       return res.json({
         error: true,
-        msg: 'Error al crear la reservación'
+        msg: 'No es posible reservar esa fecha </br></br><b>Razones</b></br>' + reservedSchedules.str
       })
+    } 
+    // Creamos la reservación
+    const created = await Reservation.create(reservation, {transaction})
+    if(!created) {
+      await transaction.rollback() 
+      return res.json({ error: true, msg: 'Error al crear la reservación' })
     }
-    // SI TODO SALIO BIEN GUARDAMOS EL DETALLE DEL TIEMPO DE RESERVA
-    if(!await createReservationTimeDetail(req, created.id, transaction)){
+    // Guardamos el horario con sus datos
+    let saveScheduleResult = await addReservationSchedule(req, created.id, transaction)
+    if(saveScheduleResult.error){
       transaction.rollback()
-      return res.json({error: true, msg: 'Error al añadir horarios de la reservacion'})
+      return res.json(saveScheduleResult)
     }
-    // PROCESAMOS LOS DATOS DEL PAQUETE
+    // Guardamos los datos del paquete
     if(req.body.packageId) {
-      let details = await getPackageDetails(req.body.packageId, created.id)
-      if(details.length === 0) { return res.json({error: true, msg: 'No hay items'})}
-      let inserted = await ReservationDetail.bulkCreate(details, {transaction})
-      if(!inserted) {
-        await transaction.rollback() 
-        return res.json({
-          error: true,
-          msg: 'Error al guardar los datos del paquete de la reservacion'
-        })
-      }
+      let packageDetailResult = await addReservationPackage(req, created.id, transaction)
+      if(packageDetailResult.error) { 
+        await transaction.rollback()
+        return res.json(packageDetailResult)}
     }
     // SI TODO VA BIEN GUARDAMOS LOS CAMBIOS
     await transaction.commit()
@@ -101,39 +73,105 @@ async function add(req, res) {
   }
 }
 
-async function getReservedHours(roomId, date, initialTime, finalTime) {
-  let times = await sequelize.query(`CALL GetHOurs('${roomId}','${date}','${initialTime}','${finalTime}')`)
-  let str = ''
-  times.forEach((time, i) => {
-    if(i !== 0) {
-      str += '</br>'+ time.selected
-    } else {
-      str += time.selected
-    }
-  })
-  return {
-    found: times,
-    str
+async function addReservationPackage(req, reservationId, transaction) {
+  try {
+    let details = await getPackageDetails(req.body.packageId, reservationId)
+    if(details.length === 0) { return {error: true, msg: 'No hay items'}}
+    return await ReservationPackage.bulkCreate(details, {transaction})
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al crear los detalles del paquete que incluirá la reservación'}
   }
 }
 
-async function createReservationTimeDetail(req, reservationId, transaction) {
-  let roomDetail = await RoomTimeDetail.findOne({
-    where: {
-      roomId: req.body.roomId,
-      timeType: req.body.timeTypeId 
+async function getReservedHours(roomId, date, initialTime, finalTime) {
+  try {   
+    const reservedHours = await Reservation.findAll({
+      include: [ReservationSchedule],
+      where: {
+        [Op.and]: [
+          { roomId },
+          { date }, 
+          {
+            [Op.or]: [
+              {
+                '$ReservationSchedules.initialTime$': {
+                  [Op.lte]: initialTime,
+                },
+                '$ReservationSchedules.finalTime$': {
+                  [Op.gte]: initialTime,
+                },
+              },
+              {
+                '$ReservationSchedules.initialTime$': {
+                  [Op.lte]: finalTime,
+                },
+                '$ReservationSchedules.finalTime$': {
+                  [Op.gte]: finalTime,
+                },
+              },
+              {
+                '$ReservationSchedules.initialTime$': {
+                  [Op.gte]: initialTime,
+                },
+                '$ReservationSchedules.finalTime$': {
+                  [Op.lte]: finalTime,
+                },
+              }
+            ]
+          },
+        ],
+      }
+    })
+    let str = ''
+    reservedHours.forEach((schedule, i) => {
+      let selectedSchedule = schedule.dataValues.ReservationSchedules[0]
+      if(i !== 0) {
+        str += '</br>'
+      }
+      if(selectedSchedule.initialTime === ALL_DAY_TIMES.INITIAL && selectedSchedule.finalTime === ALL_DAY_TIMES.FINAL) {
+        str += '- Se reservó todo el día'
+      } else {
+        str += '- Se reservó de ' + selectedSchedule.initialTime +' a '+ selectedSchedule.finalTime
+      }
+    })
+    return { hours: reservedHours , str }
+  } catch (error) {
+    console.log(error)
+    return { error: true, msg: 'Error al consultar horarios reservados'}
+  }
+}
+
+async function findRoomDetail(req) {
+  try {
+    return await ReservationType.findOne({
+      where: {
+        roomId: req.body.roomId,
+        timeType: req.body.scheduleTypeId 
+      }
+    })
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+async function addReservationSchedule(req, reservationId, transaction) {
+  try {
+    let roomDetail = await findRoomDetail(req) 
+    if(roomDetail) {
+      let detail = {
+        initialTime: req.body.initialTime,
+        finalTime: req.body.finalTime,
+        price: roomDetail.price,
+        reservationId
+      }
+      return await ReservationSchedule.create(detail ,{transaction})
+    } else {
+      return { error: true, msg: 'No existe el local seleccionado'}
     }
-  })
-  if(roomDetail) {
-    let detail = {
-      initialTime: req.body.initialTime,
-      finalTime: req.body.finalTime,
-      price: roomDetail.price,
-      reservationId
-    }
-    return await ReservationTimeDetail.create(detail ,{transaction})
-  } else {
-    transaction.rollback()
+  } catch (error) {
+    console.log(error)
+    return { error: true, msg: 'Error al agregar los datos del horario de la reservación'}
   }
 }
 
@@ -156,33 +194,55 @@ async function update(req, res) {
   const transaction = await sequelize.transaction()
   try { 
     let { roomId, date,  initialTime, finalTime} = req.body
-    // Si no se envio una imagen la quitamos del body para que no actualice la imagen
-    // Si es reservacion por dia
-    let selected = await getReservedHours(roomId, date, initialTime, finalTime)
-    console.log(selected)
-    if(req.body.timeTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
-      if(selected.found.length === 1) {
-        console.log(selected.found[0].reservationId)
-        if(selected.found[0].reservationId === parseInt(req.params.id)){
-          console.log('Puedo actulizar')
-        } else {
-          console.log('no se puede')
-        }
-      } else {
-        console.log('hay mas de uno y no se puede')
+    let reservedSchedules = await getReservedHours(roomId, date, initialTime, finalTime)
+    let updateReservationResult = await updateReservation(req, transaction)
+    // SI hubo error al actualizar la reservación
+    if(updateReservationResult.error) {
+      await transaction.rollback()
+      return res.json(updateReservationResult)
+    }
+
+    /* ACTUALIZAMOS SEGUN EL TIPO DE RESERVACIÓN */
+    // Definimos un mensaje de error en caso de que no se pueda reservar
+    let errorResponse = { error: true, msg: ''}    
+    // Definimos un mensaje de error en caso de que no se pueda reservar
+    if(req.body.scheduleTypeId === RESERVATION_TIME_TYPE.PER_HOURS) {
+      errorResponse.msg = 'No es posible reservar esa hora </br></br><b>Razones</b></br>' + reservedSchedules.str
+    }
+
+    if(req.body.scheduleTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
+      errorResponse.msg = 'No es posible reservar ese <b>día</b></br></br><b>Razones</b></br>' + reservedSchedules.str
+    }
+    // Si hay de una no se podrá actualizar
+    if(reservedSchedules.hours.length > 1) {
+      await transaction.rollback()
+      return res.json(errorResponse)
+    }
+    // Si hay solo uno validamos si se trata de una reservación dieferente
+    if(reservedSchedules.hours.length === 1) {
+      if(reservedSchedules.hours[0].id !== parseInt(req.params.id)){
+        await transaction.rollback()
+        return res.json(errorResponse)
       }
     }
-    console.log(selected)
-    /* // Actualizamos los datos
-    await Reservation.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Eliminamos la imagen anterior usando su path
-    // Retornamos el mensaje de que todo ha ido bien
-    await transaction.commit() */ 
-    return res.json({
-      error: true,
-      msg: 'Registro actualizado correctamente'
-    })
-    
+    // Si se trata de un horario diferente actualizamos
+    if(!await isSameSchedule(req, reservedSchedules)) {
+      // Actualizamos el horario de reservación
+      let updateScheduleResult = await updateSchedule(req, transaction)
+      if(updateScheduleResult.error) {
+        await transaction.rollback()
+        return res.json(updateScheduleResult) 
+      }
+    }
+    // Hay que procesar la información del paquete que envió
+    let processPackageResult = await processReservationPackage(req,  transaction)
+    if(processPackageResult.error) {
+      await transaction.rollback()
+      return res.json(processPackageResult)
+    }
+    // Si todo salió guardamos los cambios
+    await transaction.commit()
+    return res.json({done: true, msg: 'Reservación se ha actualizado correctamente'})   
   } catch (error) {
     console.log(error)
     await transaction.rollback()
@@ -190,26 +250,104 @@ async function update(req, res) {
   }
 }
 
+async function isSameSchedule(req, reservedSchedules) {
+  let schedule = reservedSchedules.hours[0].ReservationSchedules[0] 
+  let isSameInitialStart = schedule.initialTime === req.body.initialTime
+  let isSameFinalTime = schedule.finalTime = req.body.finalTime
+  return isSameInitialStart && isSameFinalTime
+}
+
+async function processReservationPackage(req,  transaction) {
+  try {
+    // Si tenia pero ahora se quitó
+    if(!req.body.packageId && req.body.found.packageId) {
+      return await removeReservationPackage(req.params.id, transaction)
+    }
+    // No tenia pero ahora se agregó
+    if(req.body.packageId && !req.body.found.packageId) {
+      return await addReservationPackage(req, req.params.id, transaction)
+    }
+    // Si tenia pero se va actualizar
+    let isNotSamePackage = (parseInt(req.body.packageId) !== parseInt(req.body.found.packageId))
+    if((req.body.packageId && req.body.found.packageId) && isNotSamePackage) {
+      let removePackageResult = await removeReservationPackage(req.params.id, transaction)
+      if(removePackageResult.error) { return removePackageResult }
+      return await addReservationPackage(req, req.params.id, transaction)
+    }
+    return {done: true, msg: 'No se realiza ningun cambio'}
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al procesar la información del paquete'}
+  }
+}
+
+async function removeReservationPackage(reservationId, transaction) {
+  try {
+    return await ReservationPackage.destroy({where: {reservationId}, transaction})
+    
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error el remover todos los items del paquete actual'}
+  }
+}
+
+async function updateReservation(req, transaction) {
+  try {
+    let { body: {date, roomId, scheduleTypeId, packageId}, params: { id }} = req
+    // Verificamos si envio o no packete para enviarlo como null en caso de no enviar
+    if(!packageId  || packageId === '') {
+      packageId = null
+    }
+    // Creamos objeto con los nuevos datos
+    let data = {date, roomId, scheduleTypeId, packageId}
+    // Actualizamos la reservación
+    return await Reservation.update(data, {where: { id }}, {transaction})
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al actualizar la reservación'}
+  }
+
+}
+
+async function updateSchedule(req, transaction) {
+  try {
+    let { body: {roomId, initialTime, finalTime, scheduleTypeId}, params: { id }} = req
+    let reservationType = await ReservationType.findOne({
+      where: { roomId, scheduleTypeId }
+    })
+
+    if(reservationType) {
+      let { price } = reservationType
+      let data = { initialTime, finalTime, price}
+      return await ReservationSchedule.update(data,{where: {reservationId: id}},{transaction})
+    } else {
+      return {error: true, msg: 'Error: No existe ese tipo de reservación'}
+    }
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al actualizar el horario de la reservación'}
+    
+  }
+
+}
+
 async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    // EXTRAEMOS TANTO EL ID COMO EL ESTADO DEL REGISTROS ENCONTRADO
     const { id, statusId } = req.body.found
-    // SI SU ESTADO ESTÁ EN APROBADA NO SE PUEDE ELIMINAR A MENOS QUE SE CAMBIE DE ESTADO A PENDIENTE
+    // Si está aprobada no permitiremos que elimine
     if (statusId === RESERVATION_STATUS.APROBADA) {
       return res.json({
         done: true,
         msg: 'No es posible eliminar esta reservacion porque está aprobada y tiene un pago pendiente'
       })
     }
-    // ELIMINIAMOS LA RESERVACION
     await Reservation.destroy({ where: { id }, transaction})
-    // GUARDAMOS LOS CAMBIOS
+    // Si todo ha ido bien guardamos los cambios
     await transaction.commit()
     return res.json({
       done: true,
       msg: 'Reservación ha sido eliminada correctamente',
-      data: {id, statusId}
     })
   } catch (error) {
     console.log(error)
@@ -223,9 +361,62 @@ async function paginate(req, res) {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
     const offset = (currentPage - 1) * perPage
-    let query = `CALL GetReservationsByPagination(${offset}, ${perPage})`
-    let rows = await sequelize.query(query)
-    return res.json({ result: true, data: {count: rows.length, rows}})
+    const reservations = await Reservation.findAndCountAll({
+      attributes: [
+        'id',
+        'currentDate',
+        'date',
+        'packageId',
+        'userRoleId',
+        'roomId',
+        'statusId',
+        'scheduleTypeId',
+        [
+          literal(`CASE 
+            WHEN Reservation.packageId IS NULL THEN 'NO'
+            ELSE 'SI'
+          END`),
+          'hasPackage'
+        ]
+      ],
+      include: [ 
+        {
+          model: ReservationSchedule,
+          attributes: [
+            'initialTime',
+            'finalTime',
+            [
+              literal(`CASE 
+                WHEN Reservation.scheduleTypeId = 1 THEN
+                  ReservationSchedules.price * (
+                    TIME_TO_SEC(TIMEDIFF(
+                      ReservationSchedules.finalTime, ReservationSchedules.initialTime
+                    )) / 3600)
+                ELSE ReservationSchedules.price
+              END`),
+              'totalPerSchedule'
+            ]      
+          ]
+        }, 
+        {
+          model: UserRoles,
+          include:[ 
+            {
+              model: User,
+              attributes: ['name', 'lastname', 'dni']
+            }
+          ]
+        },
+        ScheduleType,
+        Room
+      ],
+      group: ['Reservation.id'],
+      raw: true,
+      limit: perPage,
+      offset
+    })
+    let { rows, count:{length} } = reservations
+    return res.json({ result: true, data: {rows, count: length}})
   } catch (error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al paginar las reservaciones' })
@@ -240,9 +431,18 @@ async function filterAndPaginate(req, res) {
     const perPage = parseInt(req.body.perPage)
     const offset = (currentPage - 1) * perPage
     // Realizar la consulta con paginación y filtros
-    const rows = await sequelize.query(`CALL GetReservationsByFilterPagination(${perPage}, ${offset}, '${filter}')`)
-    const count = await sequelize.query(`CALL CountReservationsByFilter('${filter}')`)
-    return res.json({ result: true, data: {count, rows} }) 
+    const reservations = await Reservation.findAndCountAll({
+      include: [ReservationSchedule, ScheduleType],
+      raw: true,
+      limit: perPage,
+      offset,
+      where: {
+        [Op.or]:{
+          date: {[Op.like]: `%${filter}%`}
+        }
+      }
+    })
+    return res.json({ result: true, data: reservations }) 
   } catch(error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al filtrar y paginar los locales' })
@@ -260,7 +460,7 @@ async function getAll(req, res) {
 
 async function getTypes(req, res) {
   try {
-    const types = await RoomTimeType.findAll()
+    const types = await ScheduleType.findAll()
     return res.json({ data: types })
   } catch (error) {
     return res.json({ error: true, msg: 'Error al listar todos los locales' })

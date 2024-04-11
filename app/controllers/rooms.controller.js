@@ -2,8 +2,8 @@ const sequelize = require('../database/config')
 const { Op, where, col, cast} = require('sequelize')
 const Room = require('../models/room.model')
 const { deteleImage } = require('../utils/deleteFile')
-const RoomTimeDetail = require('../models/roomTimeDetail.model')
-const RoomTimeType = require('../models/roomTimeType.model')
+const ReservationType = require('../models/reservationType.model')
+const ScheduleType = require('../models/sheduleType.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -105,8 +105,8 @@ async function paginate(req, res) {
     const perPage = parseInt(req.query.perPage)
     const data = await Room.findAndCountAll({
       include: [{
-        model: RoomTimeDetail, 
-        include: [RoomTimeType]
+        model: ReservationType, 
+        include: [ScheduleType]
       }],
       raw: true,
       limit: perPage,

@@ -3,8 +3,8 @@ const Sequelize = require('sequelize')
 const Item = require('./item.model')
 const Reservation = require('./reservation.model')
 
-const ReservationDetail = db.define(
-  'ReservationDetail',
+const ReservationPackage = db.define(
+  'ReservationPackage',
   {
     reservationId:{
       type: Sequelize.INTEGER,
@@ -32,26 +32,26 @@ const ReservationDetail = db.define(
     }
   },
   { 
-    tableName: 'reservation_detail',
+    tableName: 'reservation_package',
     timestamps: false
   } 
 )
 
 // Creamos las relaciones entre modelos
 const packForeignKey = 'reservationId' 
-Reservation.hasMany(ReservationDetail, { foreignKey: packForeignKey })
-ReservationDetail.belongsTo(Reservation, { foreignKey: packForeignKey })
+Reservation.hasMany(ReservationPackage, { foreignKey: packForeignKey })
+ReservationPackage.belongsTo(Reservation, { foreignKey: packForeignKey })
 
 const itemForeignKey = 'itemId' 
-Item.hasMany(ReservationDetail, { foreignKey: itemForeignKey })
-ReservationDetail.belongsTo(Item, { foreignKey: itemForeignKey })
+Item.hasMany(ReservationPackage, { foreignKey: itemForeignKey })
+ReservationPackage.belongsTo(Item, { foreignKey: itemForeignKey })
 
-ReservationDetail.sync()
+ReservationPackage.sync()
   .then(() => {
-    console.log('ReservationDetail table has been synchronized')
+    console.log('ReservationPackage table has been synchronized')
   })
   .catch((err) => {
     console.log(err)
   })
 
-module.exports = ReservationDetail
+module.exports = ReservationPackage
