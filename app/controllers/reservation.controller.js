@@ -1,6 +1,6 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
-const { Op, literal } = require('sequelize')
+const { Op, literal, where, cast, col } = require('sequelize')
 const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
 const ScheduleType = require('../models/sheduleType.model')
@@ -10,6 +10,8 @@ const ReservationSchedule = require('../models/reservationSchedule.model')
 const UserRoles = require('../models/userRoleModel')
 const User = require('../models/userModel')
 const Room = require('../models/room.model')
+const Role = require('../models/roleModel')
+const ReservationStatus = require('../models/reservationStatus.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -325,10 +327,8 @@ async function updateSchedule(req, transaction) {
     }
   } catch (error) {
     console.log(error)
-    return {error: true, msg: 'Error al actualizar el horario de la reservación'}
-    
+    return {error: true, msg: 'Error al actualizar el horario de la reservación'} 
   }
-
 }
 
 async function remove(req, res) {
@@ -386,15 +386,9 @@ async function paginate(req, res) {
             'initialTime',
             'finalTime',
             [
-              literal(`CASE 
-                WHEN Reservation.scheduleTypeId = 1 THEN
-                  ReservationSchedules.price * (
-                    TIME_TO_SEC(TIMEDIFF(
-                      ReservationSchedules.finalTime, ReservationSchedules.initialTime
-                    )) / 3600)
-                ELSE ReservationSchedules.price
-              END`),
-              'totalPerSchedule'
+              literal(` 
+              TRUNCATE(TIMESTAMPDIFF(MINUTE, ReservationSchedules.initialTime, ReservationSchedules.finalTime) /60 , 1)`),
+              'hours'
             ]      
           ]
         }, 
@@ -404,19 +398,19 @@ async function paginate(req, res) {
             {
               model: User,
               attributes: ['name', 'lastname', 'dni']
-            }
+            },
+            Role
           ]
         },
+        ReservationStatus,
         ScheduleType,
         Room
       ],
-      group: ['Reservation.id'],
       raw: true,
       limit: perPage,
       offset
     })
-    let { rows, count:{length} } = reservations
-    return res.json({ result: true, data: {rows, count: length}})
+    return res.json({ result: true, data: reservations })
   } catch (error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al paginar las reservaciones' })
@@ -432,14 +426,63 @@ async function filterAndPaginate(req, res) {
     const offset = (currentPage - 1) * perPage
     // Realizar la consulta con paginación y filtros
     const reservations = await Reservation.findAndCountAll({
-      include: [ReservationSchedule, ScheduleType],
+      attributes: [
+        'id',
+        'currentDate',
+        'date',
+        'packageId',
+        'userRoleId',
+        'roomId',
+        'statusId',
+        'scheduleTypeId',
+        [
+          literal(`CASE 
+            WHEN Reservation.packageId IS NULL THEN 'NO'
+            ELSE 'SI'
+          END`),
+          'hasPackage'
+        ]
+      ],
+      include: [ 
+        {
+          model: ReservationSchedule,
+          attributes: [
+            'initialTime',
+            'finalTime',
+            [
+              literal(` 
+              TRUNCATE(TIMESTAMPDIFF(MINUTE, ReservationSchedules.initialTime, ReservationSchedules.finalTime) /60 , 1)`),
+              'hours'
+            ]      
+          ],
+          as: 'ReservationSchedules'
+        }, 
+        {
+          model: UserRoles,
+          include:[ 
+            {
+              model: User,
+              attributes: ['name', 'lastname', 'dni']
+            },
+            Role
+          ]
+        },
+        ReservationStatus,
+        ScheduleType,
+        Room
+      ],
       raw: true,
       limit: perPage,
       offset,
       where: {
-        [Op.or]:{
-          date: {[Op.like]: `%${filter}%`}
-        }
+        [Op.or]: [
+          { '$ReservationSchedules.initialTime$': { [Op.like]: `%${filter}%` } },
+          { '$ReservationSchedules.finalTime$': { [Op.like]: `%${filter}%` } },
+          { '$UserRole->User.name$': { [Op.like]: `%${filter}%` } },
+          { '$UserRole->User.lastname$': { [Op.like]: `%${filter}%` } },
+          { '$UserRole->User.dni$': { [Op.like]: `%${filter}%` } },
+          { '$UserRole->Role.role$': { [Op.like]: `%${filter}%` } }
+        ]
       }
     })
     return res.json({ result: true, data: reservations }) 

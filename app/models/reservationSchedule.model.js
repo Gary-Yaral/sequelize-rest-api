@@ -2,8 +2,8 @@ const db = require('../database/config')
 const Sequelize = require('sequelize')
 const Reservation = require('./reservation.model')
 
-const ReservationSchedule = db.define(
-  'ReservationSchedule',
+const ReservationSchedules = db.define(
+  'ReservationSchedules',
   {
     reservationId:{
       type: Sequelize.INTEGER,
@@ -28,22 +28,21 @@ const ReservationSchedule = db.define(
   },
   { 
     tableName: 'reservation_schedule',
-    timestamps: false,
-    as: 'ReservationSchedule'
+    timestamps: false
   } 
 )
 
 const packForeignKey = 'reservationId' 
 // Creamos las relaciones entre modelos
-Reservation.hasMany(ReservationSchedule, { foreignKey: packForeignKey })
-ReservationSchedule.belongsTo(Reservation, { foreignKey: packForeignKey })
+Reservation.hasMany(ReservationSchedules, { foreignKey: packForeignKey })
+ReservationSchedules.belongsTo(Reservation, { foreignKey: packForeignKey })
 
-ReservationSchedule.sync()
+ReservationSchedules.sync()
   .then(() => {
-    console.log('ReservationSchedule table has been synchronized')
+    console.log('ReservationSchedules table has been synchronized')
   })
   .catch((err) => {
     console.log(err)
   })
 
-module.exports = ReservationSchedule
+module.exports = ReservationSchedules
