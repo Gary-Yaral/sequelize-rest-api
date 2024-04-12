@@ -1,6 +1,6 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
-const { Op, literal, where, cast, col } = require('sequelize')
+const { Op, literal, where, cast, col, QueryTypes } = require('sequelize')
 const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
 const ScheduleType = require('../models/sheduleType.model')
@@ -361,56 +361,9 @@ async function paginate(req, res) {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
     const offset = (currentPage - 1) * perPage
-    const reservations = await Reservation.findAndCountAll({
-      attributes: [
-        'id',
-        'currentDate',
-        'date',
-        'packageId',
-        'userRoleId',
-        'roomId',
-        'statusId',
-        'scheduleTypeId',
-        [
-          literal(`CASE 
-            WHEN Reservation.packageId IS NULL THEN 'NO'
-            ELSE 'SI'
-          END`),
-          'hasPackage'
-        ]
-      ],
-      include: [ 
-        {
-          model: ReservationSchedule,
-          attributes: [
-            'initialTime',
-            'finalTime',
-            [
-              literal(` 
-              TRUNCATE(TIMESTAMPDIFF(MINUTE, ReservationSchedules.initialTime, ReservationSchedules.finalTime) /60 , 1)`),
-              'hours'
-            ]      
-          ]
-        }, 
-        {
-          model: UserRoles,
-          include:[ 
-            {
-              model: User,
-              attributes: ['name', 'lastname', 'dni']
-            },
-            Role
-          ]
-        },
-        ReservationStatus,
-        ScheduleType,
-        Room
-      ],
-      raw: true,
-      limit: perPage,
-      offset
-    })
-    return res.json({ result: true, data: reservations })
+    let count = (await sequelize.query(createPaginateQuery(), {type: QueryTypes.SELECT})).length
+    let rows = await sequelize.query(createPaginateQuery(true, {limit: perPage, offset}), {type: QueryTypes.SELECT})
+    return res.json({ result: true, data: {count, rows} })
   } catch (error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al paginar las reservaciones' })
@@ -425,71 +378,113 @@ async function filterAndPaginate(req, res) {
     const perPage = parseInt(req.body.perPage)
     const offset = (currentPage - 1) * perPage
     // Realizar la consulta con paginación y filtros
-    const reservations = await Reservation.findAndCountAll({
-      attributes: [
-        'id',
-        'currentDate',
-        'date',
-        'packageId',
-        'userRoleId',
-        'roomId',
-        'statusId',
-        'scheduleTypeId',
-        [
-          literal(`CASE 
-            WHEN Reservation.packageId IS NULL THEN 'NO'
-            ELSE 'SI'
-          END`),
-          'hasPackage'
-        ]
-      ],
-      include: [ 
-        {
-          model: ReservationSchedule,
-          attributes: [
-            'initialTime',
-            'finalTime',
-            [
-              literal(` 
-              TRUNCATE(TIMESTAMPDIFF(MINUTE, ReservationSchedules.initialTime, ReservationSchedules.finalTime) /60 , 1)`),
-              'hours'
-            ]      
-          ],
-          as: 'ReservationSchedules'
-        }, 
-        {
-          model: UserRoles,
-          include:[ 
-            {
-              model: User,
-              attributes: ['name', 'lastname', 'dni']
-            },
-            Role
-          ]
-        },
-        ReservationStatus,
-        ScheduleType,
-        Room
-      ],
-      raw: true,
-      limit: perPage,
-      offset,
-      where: {
-        [Op.or]: [
-          { '$ReservationSchedules.initialTime$': { [Op.like]: `%${filter}%` } },
-          { '$ReservationSchedules.finalTime$': { [Op.like]: `%${filter}%` } },
-          { '$UserRole->User.name$': { [Op.like]: `%${filter}%` } },
-          { '$UserRole->User.lastname$': { [Op.like]: `%${filter}%` } },
-          { '$UserRole->User.dni$': { [Op.like]: `%${filter}%` } },
-          { '$UserRole->Role.role$': { [Op.like]: `%${filter}%` } }
-        ]
-      }
-    })
-    return res.json({ result: true, data: reservations }) 
+    const count = (await sequelize.query(createPaginateFilterQuery(filter), {type: QueryTypes.SELECT})).length
+    const rows = await sequelize.query(createPaginateFilterQuery(filter, true, {limit: perPage, offset}), {type: QueryTypes.SELECT})
+    
+    return res.json({ result: true, data: {count, rows}}) 
   } catch(error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al filtrar y paginar los locales' })
   }
+}
+
+function createPaginateQuery(paginate = false, pagination = {}) {
+  let query =  `SELECT 
+		reservation.id,
+		reservation.roomId,
+		reservation.currentDate,
+		reservation_schedule.initialTime,
+		reservation_schedule.finalTime,
+		reservation.date,
+		reservation.scheduleTypeId,
+		reservation.packageId,
+		reservation_status.status,
+		room.capacity,
+		room.image,
+		room.m2,
+		room.name AS roomName,
+		CONCAT(user.name, ' ', user.lastname) AS userName,
+		user.dni,
+		role.role,
+		COALESCE(SUM(reservation_package.price * reservation_package.quantity), 0) AS payPerPackage,
+		schedule_type.type,
+		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(reservation_schedule.finalTime, reservation_schedule.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+		CASE 
+			WHEN reservation.scheduleTypeId = 1 THEN 0
+			ELSE 1
+		END AS days,
+		reservation_schedule.price,
+		CASE 
+		    WHEN reservation.scheduleTypeId = 1 THEN COALESCE((reservation_schedule.price * (TIME_TO_SEC(TIMEDIFF(reservation_schedule.finalTime, reservation_schedule.initialTime)) / 3600)), 0)
+		    ELSE reservation_schedule.price
+		END AS payPerLocal,
+		CASE 
+		    WHEN COALESCE(SUM(reservation_package.price * reservation_package.quantity), 0) = 0  THEN 'N0'
+		    ELSE 'SI'
+		END AS includePackage,
+		package.name AS packageName
+	    FROM 
+		reservation
+	    LEFT JOIN reservation_package 
+		ON reservation.id = reservation_package.reservationId
+	    LEFT JOIN room 
+		ON reservation.roomId = room.id
+	    LEFT JOIN reservation_status
+		ON reservation.statusId = reservation_status.id
+	    LEFT JOIN reservation_schedule 
+		ON reservation.id = reservation_schedule.reservationId
+	    LEFT JOIN reservation_type 
+		ON reservation.scheduleTypeId = reservation_type.scheduleTypeId AND room.id = reservation.roomId
+	    LEFT JOIN schedule_type 
+		ON reservation.scheduleTypeId = schedule_type.id
+	    LEFT JOIN user_roles 
+		ON reservation.userRoleId = user_roles.id
+	    LEFT JOIN user ON user_roles.userId = user.id
+	    LEFT JOIN role 
+		ON role.id = user_roles.roleId
+	    LEFT JOIN package 
+		ON reservation.packageId = package.id
+	    GROUP BY 
+		reservation.id` 
+    
+  if(paginate && Object.keys(pagination).length > 0) {
+    query +=` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+  } 
+
+  return query
+} 
+
+function createPaginateFilterQuery(filter, paginate = false, pagination = {}) {
+  const paginationQuery = createPaginateQuery()
+  let query = `
+    SELECT *
+    FROM (${paginationQuery}) AS subquery
+    WHERE 
+      subquery.currentDate LIKE CONCAT('%','${filter}', '%') OR
+      subquery.initialTime LIKE CONCAT('%', '${filter}', '%') OR
+      subquery.finalTime LIKE CONCAT('%', '${filter}', '%') OR
+      subquery.date LIKE CONCAT('%', '${filter}', '%') OR
+      LOWER(subquery.status) LIKE LOWER(CONCAT('%', '${filter}', '%')) OR
+      CAST(subquery.capacity AS CHAR) LIKE CONCAT('%', '${filter}', '%') OR
+      CAST(subquery.m2 AS CHAR) LIKE CONCAT('%', '${filter}', '%') OR
+      subquery.dni LIKE CONCAT('%', '${filter}', '%') OR
+      LOWER(subquery.userName) LIKE LOWER(CONCAT('%', '${filter}', '%')) OR
+      LOWER(subquery.role) LIKE LOWER(CONCAT('%', '${filter}', '%')) OR
+      LOWER(subquery.roomName) LIKE LOWER(CONCAT('%', '${filter}', '%')) OR
+      LOWER(subquery.payPerPackage) LIKE CONCAT('%', '${filter}', '%') OR
+      LOWER(subquery.type) LIKE LOWER(CONCAT('%', '${filter}', '%')) OR
+      CAST(subquery.hours AS CHAR) LIKE CONCAT('%', '${filter}', '%') OR
+      CAST(subquery.days AS CHAR) LIKE CONCAT('%', '${filter}', '%') OR
+      CAST(subquery.price AS CHAR) LIKE CONCAT('%', '${filter}', '%') OR
+      CAST(subquery.payPerLocal AS CHAR) LIKE CONCAT('%', '${filter}', '%') OR
+      LOWER(subquery.includePackage) LIKE LOWER(CONCAT('%', '${filter}', '%')) OR
+      LOWER(subquery.packageName) LIKE LOWER(CONCAT('%', '${filter}', '%'))
+      `
+  if(paginate && Object.keys(pagination).length > 0) {
+    query +=` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+  } 
+
+  return query
 }
 
 async function getAll(req, res) {
