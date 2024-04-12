@@ -7,6 +7,7 @@ const ScheduleType = require('../models/sheduleType.model')
 const ReservationPackage = require('../models/reservationPackage.model')
 const ReservationType = require('../models/reservationType.model')
 const ReservationSchedule = require('../models/reservationSchedule.model')
+const Item = require('../models/item.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -500,6 +501,20 @@ async function getTypes(req, res) {
   }
 }
 
+async function getReservationPackageData(req, res) {
+  try {
+    const reservationPackageData = await ReservationPackage.findAll({
+      where: {
+        reservationId: req.body.reservationId
+      },
+      include: [Item]
+    })
+    return res.json({ data: reservationPackageData })
+  } catch (error) {
+    return res.json({ error: true, msg: 'Error al listar todos los datos del paquete' })
+  }
+}
+
 module.exports = {
   add,
   update,
@@ -507,5 +522,6 @@ module.exports = {
   getAll,
   paginate, 
   getTypes,
+  getReservationPackageData,
   filterAndPaginate
 }

@@ -8,6 +8,7 @@ const Reservation = require('../models/reservation.model')
 
 router.get('/list', validateToken, reservationController.getAll)
 router.get('/types', validateToken, reservationController.getTypes)
+router.post('/package', validateToken, reservationController.getReservationPackageData)
 router.get('/', validateToken, reservationController.paginate)
 router.post('/', validateToken, reservationController.add)
 router.post('/filter', validateToken, reservationController.filterAndPaginate)
