@@ -1,17 +1,12 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
-const { Op, literal, where, cast, col, QueryTypes } = require('sequelize')
+const { Op, QueryTypes } = require('sequelize')
 const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
 const ScheduleType = require('../models/sheduleType.model')
 const ReservationPackage = require('../models/reservationPackage.model')
 const ReservationType = require('../models/reservationType.model')
 const ReservationSchedule = require('../models/reservationSchedule.model')
-const UserRoles = require('../models/userRoleModel')
-const User = require('../models/userModel')
-const Room = require('../models/room.model')
-const Role = require('../models/roleModel')
-const ReservationStatus = require('../models/reservationStatus.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
