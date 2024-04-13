@@ -90,7 +90,7 @@ CREATE TABLE `package_detail` (
 
 /*Data for the table `package_detail` */
 
-insert  into `package_detail`(`id`,`packageId`,`itemId`,`quantity`,`price`) values (18,65,18,1,33);
+insert  into `package_detail`(`id`,`packageId`,`itemId`,`quantity`,`price`) values (18,65,18,1,33),(19,65,19,1,43);
 
 /*Table structure for table `package_status` */
 
@@ -147,27 +147,27 @@ CREATE TABLE `reservation` (
   `packageId` int(11) DEFAULT NULL,
   `statusId` int(11) NOT NULL,
   `currentDate` date NOT NULL,
-  `timeTypeId` int(11) NOT NULL,
+  `scheduleTypeId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `statusId` (`statusId`),
   KEY `roomId` (`roomId`),
   KEY `userRoleId` (`userRoleId`),
-  KEY `reservation_ibfk_4` (`timeTypeId`),
+  KEY `reservation_ibfk_4` (`scheduleTypeId`),
   CONSTRAINT `reservation_ibfk_1` FOREIGN KEY (`statusId`) REFERENCES `reservation_status` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`timeTypeId`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`scheduleTypeId`) REFERENCES `schedule_type` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
 
-insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`timeTypeId`) values (3,'2024-03-06',10,7,65,1,'2024-04-02',1),(4,'2024-04-19',10,7,0,1,'2024-04-02',2),(14,'2024-04-11',10,7,NULL,1,'2024-04-09',2),(22,'2024-04-18',10,7,65,1,'2024-04-09',2),(23,'2024-03-06',10,7,NULL,1,'2024-04-09',1);
+insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`scheduleTypeId`) values (29,'2024-04-21',10,7,65,1,'2024-04-11',1),(30,'2024-04-26',10,7,NULL,1,'2024-04-11',2),(31,'2024-04-24',10,7,NULL,1,'2024-04-11',2);
 
-/*Table structure for table `reservation_detail` */
+/*Table structure for table `reservation_package` */
 
-DROP TABLE IF EXISTS `reservation_detail`;
+DROP TABLE IF EXISTS `reservation_package`;
 
-CREATE TABLE `reservation_detail` (
+CREATE TABLE `reservation_package` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `itemId` int(11) NOT NULL,
   `quantity` double NOT NULL,
@@ -175,14 +175,33 @@ CREATE TABLE `reservation_detail` (
   `reservationId` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `itemId` (`itemId`),
-  KEY `reservation_detail_ibfk_1` (`reservationId`),
-  CONSTRAINT `reservation_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `reservation_detail_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `reservation_package_ibfk_1` (`reservationId`),
+  CONSTRAINT `reservation_package_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `reservation_package_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*Data for the table `reservation_detail` */
+/*Data for the table `reservation_package` */
 
-insert  into `reservation_detail`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (1,18,3,2,3),(2,18,4,3,3),(18,18,1,33,22);
+insert  into `reservation_package`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (18,18,1,33,29),(19,19,1,43,29);
+
+/*Table structure for table `reservation_schedule` */
+
+DROP TABLE IF EXISTS `reservation_schedule`;
+
+CREATE TABLE `reservation_schedule` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `reservationId` int(11) NOT NULL,
+  `initialTime` time NOT NULL,
+  `finalTime` time NOT NULL,
+  `price` double NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `reservation_time_detail_ibfk_1` (`reservationId`),
+  CONSTRAINT `reservation_schedule_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `reservation_schedule` */
+
+insert  into `reservation_schedule`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (22,29,'01:00:00','05:30:00',50),(23,30,'00:00:00','23:30:00',240),(24,31,'00:00:00','23:30:00',240);
 
 /*Table structure for table `reservation_status` */
 
@@ -198,24 +217,25 @@ CREATE TABLE `reservation_status` (
 
 insert  into `reservation_status`(`id`,`status`) values (1,'EN ESPERA'),(2,'APROBADA'),(3,'RECHAZADA');
 
-/*Table structure for table `reservation_time_detail` */
+/*Table structure for table `reservation_type` */
 
-DROP TABLE IF EXISTS `reservation_time_detail`;
+DROP TABLE IF EXISTS `reservation_type`;
 
-CREATE TABLE `reservation_time_detail` (
+CREATE TABLE `reservation_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `reservationId` int(11) NOT NULL,
-  `initialTime` time NOT NULL,
-  `finalTime` time NOT NULL,
+  `roomId` int(11) NOT NULL,
+  `scheduleTypeId` int(11) NOT NULL,
   `price` double NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `reservation_time_detail_ibfk_1` (`reservationId`),
-  CONSTRAINT `reservation_time_detail_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `roomId` (`roomId`),
+  KEY `reservation_type_ibfk_2` (`scheduleTypeId`),
+  CONSTRAINT `reservation_type_ibfk_1` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `reservation_type_ibfk_2` FOREIGN KEY (`scheduleTypeId`) REFERENCES `schedule_type` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*Data for the table `reservation_time_detail` */
+/*Data for the table `reservation_type` */
 
-insert  into `reservation_time_detail`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (1,3,'01:30:00','05:00:00',40),(2,4,'00:00:00','23:30:00',250),(7,14,'00:00:00','23:30:00',240),(15,22,'00:00:00','23:30:00',240),(16,23,'05:30:00','08:30:00',50);
+insert  into `reservation_type`(`id`,`roomId`,`scheduleTypeId`,`price`) values (1,7,1,50),(2,7,2,240),(4,9,1,60),(5,9,2,350);
 
 /*Table structure for table `role` */
 
@@ -248,57 +268,25 @@ CREATE TABLE `room` (
   `capacity` double NOT NULL,
   `minTimeRent` double NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `room` */
 
-insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','Local-1712005038933-6cc587d1-b7d8-4bc3-b51a-ec4165979821..jpg',200,400,2.5);
+insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','LOCAL-1712970308512-621d89c8-68f7-445e-bb3a-231010898d1e..jpg',200,400,4),(9,'ANIS 2','dssd dsd','0923523466','dgsdgsg@gmail.com','2 baños, 1 cocina, 1 sala de karaoke','LOCAL-1712971931351-f4a0a52e-35cb-41ba-90cb-f4ecb5c8b0ba..jpg',600,350,3);
 
-/*Table structure for table `room_time_detail` */
+/*Table structure for table `schedule_type` */
 
-DROP TABLE IF EXISTS `room_time_detail`;
+DROP TABLE IF EXISTS `schedule_type`;
 
-CREATE TABLE `room_time_detail` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roomId` int(11) NOT NULL,
-  `timeType` int(11) NOT NULL,
-  `price` double NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `roomId` (`roomId`),
-  KEY `timeType` (`timeType`),
-  CONSTRAINT `room_time_detail_ibfk_1` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `room_time_detail_ibfk_2` FOREIGN KEY (`timeType`) REFERENCES `room_time_type` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `room_time_detail` */
-
-insert  into `room_time_detail`(`id`,`roomId`,`timeType`,`price`) values (1,7,1,50),(2,7,2,240);
-
-/*Table structure for table `room_time_type` */
-
-DROP TABLE IF EXISTS `room_time_type`;
-
-CREATE TABLE `room_time_type` (
+CREATE TABLE `schedule_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*Data for the table `room_time_type` */
+/*Data for the table `schedule_type` */
 
-insert  into `room_time_type`(`id`,`type`) values (1,'POR HORA'),(2,'POR DIA');
-
-/*Table structure for table `schedule` */
-
-DROP TABLE IF EXISTS `schedule`;
-
-CREATE TABLE `schedule` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `timeRange` varchar(64) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `schedule` */
+insert  into `schedule_type`(`id`,`type`) values (1,'POR HORA'),(2,'POR DIA');
 
 /*Table structure for table `subcategory` */
 
@@ -316,20 +304,6 @@ CREATE TABLE `subcategory` (
 /*Data for the table `subcategory` */
 
 insert  into `subcategory`(`id`,`name`,`categoryId`) values (3,'UNO',2),(7,'DOS',2),(8,'CERVEZA',3);
-
-/*Table structure for table `times_detail` */
-
-DROP TABLE IF EXISTS `times_detail`;
-
-CREATE TABLE `times_detail` (
-  `id` int(11) NOT NULL DEFAULT 0,
-  `itemId` int(11) NOT NULL,
-  `quantity` double NOT NULL,
-  `price` double NOT NULL,
-  `reservationId` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `times_detail` */
 
 /*Table structure for table `user` */
 
@@ -403,8 +377,8 @@ SELECT COUNT(*) AS `count`
 		r.id,
 		r.roomId,
 		r.currentDate,
-		rtd.initialTime,
-		rtd.finalTime,
+		rsch.initialTime,
+		rsch.finalTime,
 		r.date,
 		r.timeTypeId,
 		r.packageId,
@@ -415,33 +389,33 @@ SELECT COUNT(*) AS `count`
 		CONCAT(u.name, ' ', u.lastname) AS userName,
 		rl.role,
 		rm.name AS roomName,
-		COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+		COALESCE(SUM(rp.price * rp.quantity), 0) AS payPerPackage,
 		rtt.type,
-		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
 		CASE 
 			WHEN r.timeTypeId = 1 THEN 0
 			ELSE 1
 		END AS days,
 		rtd.price,
 		CASE 
-		    WHEN r.timeTypeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+		    WHEN r.timeTypeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600)), 0)
 		    ELSE rtd.price
 		END AS payPerLocal,
 		CASE 
-		    WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+		    WHEN COALESCE(SUM(rp.price * rp.quantity), 0) = 0  THEN 'N0'
 		    ELSE 'SI'
 		END AS includePackage,
 		pk.name AS packageName
 	    FROM 
 		reservation r
 	    LEFT JOIN 
-		reservation_detail rd ON r.id = rd.reservationId
+		reservation_package rp ON r.id = rp.reservationId
 	    LEFT JOIN
 		room rm ON r.roomId = rm.id
 	    LEFT JOIN
 		reservation_status rs ON r.statusId = rs.id
 	    LEFT JOIN
-		reservation_time_detail rtd ON r.id = rtd.reservationId
+		reservation_schedule rsch ON r.id = rsch.reservationId
 	    LEFT JOIN
 		room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
 	    LEFT JOIN
@@ -486,16 +460,16 @@ DELIMITER $$
 
 /*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetHours`(IN room_id INT, IN found_date DATE, IN ini_time VARCHAR(100), IN fin_time VARCHAR(100))
 SELECT 
-		rtdl.id,
-		rtdl.reservationId,
+		rsch.id,
+		rsch.reservationId,
 		case 
-		when rtdl.initialTime = '00:00' and rtdl.finalTime = '23:30' then '- Reservado todo el día'
-		else CONCAT('- ','Reservado de ', rtdl.initialTime, ' a ',rtdl.finalTime)
+		when rsch.initialTime = '00:00' and rsch.finalTime = '23:30' then '- Reservado todo el día'
+		else CONCAT('- ','Reservado de ', rsch.initialTime, ' a ',rsch.finalTime)
 		end as selected
-	FROM reservation_time_detail rtdl
+	FROM reservation_schedule rsch
 	INNER JOIN reservation r
-	ON r.id = rtdl.reservationId
-	WHERE r.date = found_date AND r.roomId = room_id AND (ini_time < rtdl.finalTime AND fin_time > rtdl.initialTime) */$$
+	ON r.id = rsch.reservationId
+	WHERE r.date = found_date AND r.roomId = room_id AND (ini_time < rsch.finalTime AND fin_time > rsch.initialTime) */$$
 DELIMITER ;
 
 /* Procedure structure for procedure `GetReservationsByFilterPagination` */
@@ -511,8 +485,8 @@ SELECT *
 		r.id,
 		r.roomId,
 		r.currentDate,
-		rtd.initialTime,
-		rtd.finalTime,
+		rsch.initialTime,
+		rsch.finalTime,
 		r.date,
 		r.timeTypeId,
 		r.packageId,
@@ -523,33 +497,33 @@ SELECT *
 		CONCAT(u.name, ' ', u.lastname) AS userName,
 		rl.role,
 		rm.name AS roomName,
-		COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+		COALESCE(SUM(rp.price * rp.quantity), 0) AS payPerPackage,
 		rtt.type,
-		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
 		CASE 
 			WHEN r.timeTypeId = 1 THEN 0
 			ELSE 1
 		END AS days,
 		rtd.price,
 		CASE 
-		    WHEN r.timeTypeId = 1 THEN COALESCE((rtd.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+		    WHEN r.timeTypeId = 1 THEN COALESCE((rsch.price * (TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rtd.initialTime)) / 3600)), 0)
 		    ELSE rtd.price
 		END AS payPerLocal,
 		CASE 
-		    WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+		    WHEN COALESCE(SUM(rp.price * rp.quantity), 0) = 0  THEN 'N0'
 		    ELSE 'SI'
 		END AS includePackage,
 		pk.name AS packageName
 	    FROM 
 		reservation r
 	    LEFT JOIN 
-		reservation_detail rd ON r.id = rd.reservationId
+		reservation_package rp ON r.id = rp.reservationId
 	    LEFT JOIN
 		room rm ON r.roomId = rm.id
 	    LEFT JOIN
 		reservation_status rs ON r.statusId = rs.id
 	    LEFT JOIN
-		reservation_time_detail rtd ON r.id = rtd.reservationId
+		reservation_schedule rsch ON r.id = rsch.reservationId
 	    LEFT JOIN
 		room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
 	    LEFT JOIN
@@ -599,8 +573,8 @@ BEGIN
         r.id,
         r.roomId,
         r.currentDate,
-        rtd.initialTime,
-        rtd.finalTime,
+        rsch.initialTime,
+        rsch.finalTime,
         r.date,
         r.timeTypeId,
         r.packageId,
@@ -611,33 +585,33 @@ BEGIN
         CONCAT(u.name, ' ', u.lastname) AS userName,
         rl.role,
         rm.name AS roomName,
-        COALESCE(SUM(rd.price * rd.quantity), 0) AS payPerPackage,
+        COALESCE(SUM(rp.price * rp.quantity), 0) AS payPerPackage,
         rtt.type,
-        COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
+        COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
         CASE 
             WHEN r.timeTypeId = 1 THEN 0
             ELSE 1
         END AS days,
         rtd.price,
         CASE 
-            WHEN r.timeTypeId = 1 THEN COALESCE((rtd.price * (TIME_TO_SEC(TIMEDIFF(rtd.finalTime, rtd.initialTime)) / 3600)), 0)
+            WHEN r.timeTypeId = 1 THEN COALESCE((rsch.price * (TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rtd.initialTime)) / 3600)), 0)
             ELSE rtd.price
         END AS payPerLocal,
         CASE 
-            WHEN COALESCE(SUM(rd.price * rd.quantity), 0) = 0  THEN 'N0'
+            WHEN COALESCE(SUM(rp.price * rp.quantity), 0) = 0  THEN 'N0'
             ELSE 'SI'
         END AS includePackage,
         pk.name AS packageName
     FROM 
         reservation r
     LEFT JOIN 
-        reservation_detail rd ON r.id = rd.reservationId
+        reservation_package rp ON r.id = rp.reservationId
     LEFT JOIN
         room rm ON r.roomId = rm.id
     LEFT JOIN
         reservation_status rs ON r.statusId = rs.id
     LEFT JOIN
-        reservation_time_detail rtd ON r.id = rtd.reservationId
+        reservation_schedule rsch ON r.id = rsch.reservationId
     LEFT JOIN
         room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
     LEFT JOIN
@@ -664,10 +638,10 @@ DELIMITER $$
 
 /*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `ValidateHours`(in room_id int, in found_date date, in ini_time varchar(100), in fin_time varchar(100))
 SELECT count(*) as total
-	FROM reservation_time_detail rtdl
+	FROM reservation_schedule rsch
 	inner join reservation r
-	ON r.id = rtdl.reservationId
-	WHERE r.date = found_date and r.roomId = room_id AND (ini_time < rtdl.finalTime AND fin_time > rtdl.initialTime) */$$
+	ON r.id = rsch.reservationId
+	WHERE r.date = found_date and r.roomId = room_id AND (ini_time < rsch.finalTime AND fin_time > rsch.initialTime) */$$
 DELIMITER ;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
