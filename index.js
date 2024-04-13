@@ -17,7 +17,9 @@ app.use('/api', routes.router)
 
 sequelize.sync()
   .then(() => {
-    app.listen(PORT)
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`)
+    })
     console.log('Database have been synchronized')
   })
   .catch((err) => {

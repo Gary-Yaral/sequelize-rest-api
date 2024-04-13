@@ -9,6 +9,9 @@ const ReservationType = require('../models/reservationType.model')
 const ReservationSchedule = require('../models/reservationSchedule.model')
 const Item = require('../models/item.model')
 const ReservationStatus = require('../models/reservationStatus.model')
+const { sendMail } = require('../email/mailer')
+const { htmlInitial } = require('../email/types/created')
+const Room = require('../models/room.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -62,6 +65,12 @@ async function add(req, res) {
         await transaction.rollback()
         return res.json(packageDetailResult)}
     }
+    // Enviamos el email
+    let msgResult = await sendNewEmail(req, RESERVATION_STATUS.EN_ESPERA)
+    if(msgResult.error) {
+      await transaction.rollback()
+      return res.json(msgResult)
+    }
     // SI TODO VA BIEN GUARDAMOS LOS CAMBIOS
     await transaction.commit()
     return res.json({ done: true, msg: 'Se ha creado la reservación correctamente. En espera de ser aprobada' })
@@ -69,6 +78,31 @@ async function add(req, res) {
     console.log(error)
     await transaction.rollback()
     return res.json({ error: true, msg: 'Error al guardar datos de la reservación' })
+  }
+}
+
+async function sendNewEmail(req, type) {
+  try {
+    let text = ''
+    if(type === RESERVATION_STATUS.EN_ESPERA) {
+      const local = await Room.findOne({where: {id: req.body.roomId}})
+      let str = `
+        <p><b>Local: </b>${local.dataValues.name}</p>
+        <p><b>Horario: </b>${req.body.initialTime} a ${req.body.finalTime}</p>
+        <p><b>Fecha: </b>${req.body.date}</p>
+      `
+      text =  htmlInitial(str)
+    }
+
+    return await sendMail({
+      email: 'gary.yaral@gmail.com',
+      subject: 'Importante',
+      text,
+      type: 'html'
+    })
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al enviar el mensaje'}
   }
 }
 
@@ -146,7 +180,7 @@ async function findRoomDetail(req) {
     return await ReservationType.findOne({
       where: {
         roomId: req.body.roomId,
-        timeType: req.body.scheduleTypeId 
+        scheduleTypeId: req.body.scheduleTypeId 
       }
     })
   } catch (error) {
@@ -183,6 +217,7 @@ async function getPackageDetails(packageId, reservationId) {
   })
 
   return itemsDetails.map((detail) => {
+    delete detail.dataValues.id
     delete detail.dataValues.packageId
     detail.dataValues.reservationId = reservationId
     return detail.dataValues

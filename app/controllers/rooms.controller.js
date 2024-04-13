@@ -2,7 +2,7 @@ const sequelize = require('../database/config')
 const { QueryTypes} = require('sequelize')
 const Room = require('../models/room.model')
 const { deteleImage } = require('../utils/deleteFile')
-const { RESERVATION_TIME_TYPE } = require('../constants/db_constants')
+const { RESERVATION_TIME_TYPE, ERROR_PARENT_CODE } = require('../constants/db_constants')
 const ReservationType = require('../models/reservationType.model')
 
 async function add(req, res) {
@@ -120,6 +120,12 @@ async function remove(req, res) {
     })
   } catch (error) {
     await transaction.rollback()
+    if(error.original) {
+      if(error.original.errno === ERROR_PARENT_CODE) {
+        return res.json({ error: true, msg: 'No es posible eliminar este local, tiene registros vinculados' })
+      }
+    }
+    console.log(error)
     return res.json({ error: true, msg: 'Error al intentar eliminar el local' })
   }
 }
