@@ -8,6 +8,7 @@ const ReservationPackage = require('../models/reservationPackage.model')
 const ReservationType = require('../models/reservationType.model')
 const ReservationSchedule = require('../models/reservationSchedule.model')
 const Item = require('../models/item.model')
+const ReservationStatus = require('../models/reservationStatus.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -352,6 +353,28 @@ async function remove(req, res) {
   }
 }
 
+async function updateStatus(req, res) {
+  const transaction = await sequelize.transaction() 
+  try {
+    if(req.body.statusId === RESERVATION_STATUS.APROBADA) {
+      //
+    }
+    if(req.body.statusId === RESERVATION_STATUS.RECHAZADA) {
+      //
+    }
+    if(req.body.statusId === RESERVATION_STATUS.EN_ESPERA) {
+      //
+    }
+
+    return res.json({done: true, msg: 'Se ha actualizado el estado de la reservación'})
+  } catch (error) {
+    await transaction.rollback()
+    console.log(error)
+    return res.json({done: true, msg: 'Se ha actualizado el estado de la reservación'})
+
+  }
+}
+
 async function paginate(req, res) {
   try {
     const currentPage = parseInt(req.query.currentPage)
@@ -394,6 +417,7 @@ function createPaginateQuery(paginate = false, pagination = {}) {
 		reservation.date,
 		reservation.scheduleTypeId,
 		reservation.packageId,
+		reservation.statusId,
 		reservation_status.status,
 		room.capacity,
 		room.image,
@@ -415,7 +439,7 @@ function createPaginateQuery(paginate = false, pagination = {}) {
 		    ELSE reservation_schedule.price
 		END AS payPerLocal,
 		CASE 
-		    WHEN COALESCE(SUM(reservation_package.price * reservation_package.quantity), 0) = 0  THEN 'N0'
+		    WHEN COALESCE(SUM(reservation_package.price * reservation_package.quantity), 0) = 0  THEN 'NO'
 		    ELSE 'SI'
 		END AS includePackage,
 		package.name AS packageName
@@ -497,7 +521,16 @@ async function getTypes(req, res) {
     const types = await ScheduleType.findAll()
     return res.json({ data: types })
   } catch (error) {
-    return res.json({ error: true, msg: 'Error al listar todos los locales' })
+    return res.json({ error: true, msg: 'Error al listar todos los tipo de horarios' })
+  }
+}
+
+async function getStatusTypes(req, res) {
+  try {
+    const types = await ReservationStatus.findAll()
+    return res.json({ data: types })
+  } catch (error) {
+    return res.json({ error: true, msg: 'Error al listar todos los estados de reservación' })
   }
 }
 
@@ -522,6 +555,8 @@ module.exports = {
   getAll,
   paginate, 
   getTypes,
+  updateStatus,
+  getStatusTypes,
   getReservationPackageData,
   filterAndPaginate
 }

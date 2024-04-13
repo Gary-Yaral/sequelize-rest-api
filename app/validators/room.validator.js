@@ -38,10 +38,6 @@ const roomValidator = [
     .exists().withMessage(customMessages['required'])
     .isNumeric().withMessage(customMessages['price'])
     .notEmpty().withMessage(customMessages['empty']),
-  check('perMonth')
-    .exists().withMessage(customMessages['required'])
-    .isNumeric().withMessage(customMessages['price'])
-    .notEmpty().withMessage(customMessages['empty']),
   check('m2')
     .exists().withMessage(customMessages['required'])
     .isNumeric().withMessage(customMessages['price'])
