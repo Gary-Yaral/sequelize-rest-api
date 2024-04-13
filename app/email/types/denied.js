@@ -1,6 +1,6 @@
 const { logo } = require('../constants')
 
-let htmlInitial = (info) => `
+let htmlDenied = (info) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,8 +17,8 @@ let htmlInitial = (info) => `
     </tr>
     <tr>
       <td style="text-align: center; background-color: #ffffff; padding: 10px">
-        <h1 style="margin: 0; color: #003AD8;">Felicidades su reservación ha sido recibida</h1>
-        <p style="margin: 10px 0; color: #666666;">En el trascurso del día se procederá a revisar su reservación y su posterior aprobación</p>
+        <h1 style="margin: 0; color: #F70303;">!Reservación ha sido rechazada!</h1>
+        <p style="margin: 10px 0; color: #666666;">Para más información al respecto, comuniquese con el administrador</p>
         <p style="margin: 10px 0; color: #666666;"><h3>Datos de la reserva</h3></p>
         <p style="margin: 10px 0; color: #666666;">${info}</p>
       </td>
@@ -28,4 +28,4 @@ let htmlInitial = (info) => `
 </html>
 `
 
-module.exports = { htmlInitial }
+module.exports = { htmlDenied }

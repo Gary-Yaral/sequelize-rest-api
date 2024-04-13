@@ -12,6 +12,10 @@ const ReservationStatus = require('../models/reservationStatus.model')
 const { sendMail } = require('../email/mailer')
 const { htmlInitial } = require('../email/types/created')
 const Room = require('../models/room.model')
+const UserRoles = require('../models/userRoleModel')
+const User = require('../models/userModel')
+const { htmlSuccess } = require('../email/types/success')
+const { htmlDenied } = require('../email/types/denied')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -83,26 +87,71 @@ async function add(req, res) {
 
 async function sendNewEmail(req, type) {
   try {
-    let text = ''
-    if(type === RESERVATION_STATUS.EN_ESPERA) {
-      const local = await Room.findOne({where: {id: req.body.roomId}})
-      let str = `
-        <p><b>Local: </b>${local.dataValues.name}</p>
-        <p><b>Horario: </b>${req.body.initialTime} a ${req.body.finalTime}</p>
-        <p><b>Fecha: </b>${req.body.date}</p>
-      `
-      text =  htmlInitial(str)
-    }
-
+    let { roomId, initialTime, finalTime, date } = req.body
+    let msgData = await createMsgData(type, roomId, initialTime, finalTime, date)
+    if(msgData.error) { return msgData }
+    let emailUser = await getUserEmail(req, type)
+    if(emailUser.error) { return emailUser }
     return await sendMail({
-      email: 'gary.yaral@gmail.com',
-      subject: 'Importante',
-      text,
+      email: emailUser,
+      subject: 'Proceso de Reservación',
+      text: msgData.text,
       type: 'html'
     })
+
   } catch (error) {
     console.log(error)
     return {error: true, msg: 'Error al enviar el mensaje'}
+  }
+}
+
+async function createMsgData(type, roomId, initialTime, finalTime, date) {
+  try {
+    let text = ''
+    const local = await Room.findOne({where: {id: roomId}})
+    let str = `
+      <p><b>Local: </b>${local.dataValues.name}</p>
+      <p><b>Horario: </b>${initialTime} a ${finalTime}</p>
+      <p><b>Fecha: </b>${date}</p>
+    `
+    if(type === RESERVATION_STATUS.EN_ESPERA) {
+      return {text: htmlInitial(str)}
+    }
+  
+    if(type === RESERVATION_STATUS.APROBADA) {
+      return {text: htmlSuccess(str)}
+    }
+    if(type === RESERVATION_STATUS.RECHAZADA) {
+      return {text: htmlDenied(str)}
+    }
+
+    return { text }
+  } catch (error) {
+    console.log(error)
+    return { error: true, msg: 'Error al crear el mensaje del email'}  
+  }
+}
+
+async function getUserEmail(req, type) {
+  try {
+    if(type === RESERVATION_STATUS.EN_ESPERA) {
+      let userId = req.user.data.User.id
+      let found =  await User.findOne({where: {id: userId}})
+      if (!found) { return {error: true, msg: 'Error al consultar email del usuario logueado'}}
+      return found.dataValues.email
+    }
+
+    if(req.params.id && type !== RESERVATION_STATUS.EN_ESPERA) {
+      const reservation = await Reservation.findOne({
+        where: { id: req.params.id },
+        include: [{model: UserRoles, include: [User]}]
+      })
+      return reservation.UserRole.User.email 
+    }
+    return {error: true, msg: 'Error al obtener email. No se ha enviado el id de la reservación'}
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al obtener el email del dueño de la reservación'}
   }
 }
 
@@ -209,13 +258,7 @@ async function addReservationSchedule(req, reservationId, transaction) {
 }
 
 async function getPackageDetails(packageId, reservationId) {
-  // Gbtenemos todos los registros que pertenezcan a ese paquete
-  const itemsDetails = await PackageDetail.findAll({
-    where: {
-      packageId: packageId
-    }
-  })
-
+  const itemsDetails = await PackageDetail.findAll({where: { packageId }})
   return itemsDetails.map((detail) => {
     delete detail.dataValues.id
     delete detail.dataValues.packageId
@@ -235,33 +278,27 @@ async function update(req, res) {
       await transaction.rollback()
       return res.json(updateReservationResult)
     }
-
-    /* ACTUALIZAMOS SEGUN EL TIPO DE RESERVACIÓN */
-    // Definimos un mensaje de error en caso de que no se pueda reservar
     let errorResponse = { error: true, msg: ''}    
-    // Definimos un mensaje de error en caso de que no se pueda reservar
     if(req.body.scheduleTypeId === RESERVATION_TIME_TYPE.PER_HOURS) {
       errorResponse.msg = 'No es posible reservar esa hora </br></br><b>Razones</b></br>' + reservedSchedules.str
     }
-
     if(req.body.scheduleTypeId === RESERVATION_TIME_TYPE.PER_DAY) {
       errorResponse.msg = 'No es posible reservar ese <b>día</b></br></br><b>Razones</b></br>' + reservedSchedules.str
     }
-    // Si hay de una no se podrá actualizar
+    // Si hay más de un horario reservado no se podrá actualizar
     if(reservedSchedules.hours.length > 1) {
       await transaction.rollback()
       return res.json(errorResponse)
     }
-    // Si hay solo uno validamos si se trata de una reservación dieferente
+    // Si hay solo un horario validamos si se trata de una reservación diferente
     if(reservedSchedules.hours.length === 1) {
       if(reservedSchedules.hours[0].id !== parseInt(req.params.id)){
         await transaction.rollback()
         return res.json(errorResponse)
       }
     }
-    // Si se trata de un horario diferente actualizamos
+    // Si se trata de la misma reservación pero un horario diferente actualizamos
     if(!await isSameSchedule(req, reservedSchedules)) {
-      // Actualizamos el horario de reservación
       let updateScheduleResult = await updateSchedule(req, transaction)
       if(updateScheduleResult.error) {
         await transaction.rollback()
@@ -301,7 +338,7 @@ async function processReservationPackage(req,  transaction) {
     if(req.body.packageId && !req.body.found.packageId) {
       return await addReservationPackage(req, req.params.id, transaction)
     }
-    // Si tenia pero se va actualizar
+    // Si tenia pero se va actualizar con uno diferente
     let isNotSamePackage = (parseInt(req.body.packageId) !== parseInt(req.body.found.packageId))
     if((req.body.packageId && req.body.found.packageId) && isNotSamePackage) {
       let removePackageResult = await removeReservationPackage(req.params.id, transaction)
@@ -318,7 +355,6 @@ async function processReservationPackage(req,  transaction) {
 async function removeReservationPackage(reservationId, transaction) {
   try {
     return await ReservationPackage.destroy({where: {reservationId}, transaction})
-    
   } catch (error) {
     console.log(error)
     return {error: true, msg: 'Error el remover todos los items del paquete actual'}
@@ -328,19 +364,13 @@ async function removeReservationPackage(reservationId, transaction) {
 async function updateReservation(req, transaction) {
   try {
     let { body: {date, roomId, scheduleTypeId, packageId}, params: { id }} = req
-    // Verificamos si envio o no packete para enviarlo como null en caso de no enviar
-    if(!packageId  || packageId === '') {
-      packageId = null
-    }
-    // Creamos objeto con los nuevos datos
-    let data = {date, roomId, scheduleTypeId, packageId}
-    // Actualizamos la reservación
-    return await Reservation.update(data, {where: { id }}, {transaction})
+    if(!packageId  || packageId === '') { packageId = null }
+    let newData = {date, roomId, scheduleTypeId, packageId}
+    return await Reservation.update(newData, {where: { id }}, {transaction})
   } catch (error) {
     console.log(error)
     return {error: true, msg: 'Error al actualizar la reservación'}
   }
-
 }
 
 async function updateSchedule(req, transaction) {
@@ -349,14 +379,12 @@ async function updateSchedule(req, transaction) {
     let reservationType = await ReservationType.findOne({
       where: { roomId, scheduleTypeId }
     })
-
     if(reservationType) {
       let { price } = reservationType
       let data = { initialTime, finalTime, price}
       return await ReservationSchedule.update(data,{where: {reservationId: id}},{transaction})
-    } else {
-      return {error: true, msg: 'Error: No existe ese tipo de reservación'}
     }
+    return {error: true, msg: 'Error: No existe ese tipo de reservación'}
   } catch (error) {
     console.log(error)
     return {error: true, msg: 'Error al actualizar el horario de la reservación'} 
@@ -377,10 +405,7 @@ async function remove(req, res) {
     await Reservation.destroy({ where: { id }, transaction})
     // Si todo ha ido bien guardamos los cambios
     await transaction.commit()
-    return res.json({
-      done: true,
-      msg: 'Reservación ha sido eliminada correctamente',
-    })
+    return res.json({ done: true, msg: 'Reservación ha sido eliminada correctamente' })
   } catch (error) {
     console.log(error)
     await transaction.rollback()
@@ -388,25 +413,71 @@ async function remove(req, res) {
   }
 }
 
-async function updateStatus(req, res) {
+async function hasSameStatus(req) {
+  try {
+    const reservation = await Reservation.findOne({where: {id: req.params.id}})
+    if(reservation) { 
+      return {
+        isSame: reservation.statusId === req.body.statusId, 
+        statusId: reservation.statusId
+      }
+    }
+    return {error: true, msg: 'Error no existe la reservación que intenta cargar'}
+  } catch (error) {
+    return {error: true, msg: 'Error al desconocido al consultar el estado de la reservación'}
+  }
+}
+
+async function addRequestPropsForUpdateStatus(req) {
+  try {
+    const reservation = await Reservation.findOne({where: {id: req.params.id}, include: [ReservationSchedule]})
+    let newProps = {
+      date: reservation.date,
+      roomId: reservation.roomId,
+      initialTime: reservation.ReservationSchedules[0].initialTime,
+      finalTime: reservation.ReservationSchedules[0].finalTime
+    }
+    req.body = { ...req.body, ...newProps}
+    return {done: true, msg: 'Propiedades han sido agregadas'}
+  } catch (error) {
+    return {error: true, msg: 'Error al añadir en la request las propiedades necesarias para envio del mensaje'}
+  }
+}
+
+async function updateReservationStatus(req, res) {
   const transaction = await sequelize.transaction() 
   try {
-    if(req.body.statusId === RESERVATION_STATUS.APROBADA) {
-      //
+    let sameStatus = await hasSameStatus(req)
+    if(sameStatus.error) { return res.json(sameStatus.error)}
+    if(sameStatus.isSame) {
+      return res.json({
+        done: true, 
+        msg: 'El estado de la reservación ha sido actualizado correctamente. No se envió enviado email porque el estado anterior era el mismo'
+      })
     }
-    if(req.body.statusId === RESERVATION_STATUS.RECHAZADA) {
-      //
+    let { statusId } = req.body
+    let { id } = req.params
+    let updatedReservation = await Reservation.update({ statusId }, { where: {id}, transaction })
+    if(!updatedReservation) {
+      await transaction.rollback()
+      return res.json({error: true, msg: 'No se pudo actualizar el estado de la reservación'})
     }
-    if(req.body.statusId === RESERVATION_STATUS.EN_ESPERA) {
-      //
+    const addRequestPropsResult = await addRequestPropsForUpdateStatus(req)
+    if(addRequestPropsResult.error) {
+      await transaction.rollback()
+      return res.json(addRequestPropsResult)
     }
-
-    return res.json({done: true, msg: 'Se ha actualizado el estado de la reservación'})
+    const sendEmailResult = await sendNewEmail(req, statusId)
+    if(sendEmailResult.error) {
+      await transaction.rollback()
+      return res.json(sendEmailResult)
+    }
+    await transaction.commit()
+    return res.json({done: true, msg: 'Se ha actualizado el estado de la reservación. Se ha enviado un correo a <b>' + sendEmailResult.email + '</b>'})
   } catch (error) {
     await transaction.rollback()
     console.log(error)
-    return res.json({done: true, msg: 'Se ha actualizado el estado de la reservación'})
-
+    return res.json({error: true, msg: 'Error al actualizar el estado de la reservación'})
   }
 }
 
@@ -551,7 +622,7 @@ async function getAll(req, res) {
   }
 }
 
-async function getTypes(req, res) {
+async function getScheduleTypes(req, res) {
   try {
     const types = await ScheduleType.findAll()
     return res.json({ data: types })
@@ -589,8 +660,8 @@ module.exports = {
   remove,
   getAll,
   paginate, 
-  getTypes,
-  updateStatus,
+  getScheduleTypes,
+  updateReservationStatus,
   getStatusTypes,
   getReservationPackageData,
   filterAndPaginate

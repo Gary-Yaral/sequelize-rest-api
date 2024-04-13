@@ -15,11 +15,11 @@ const accountTransport = {
 }
 
 // Configura el correo electrónico que deseas enviar
-const mailOptions = {
-  email: 'gary.yaral@gmail.com',
+/* const mailOptions = {
+  email: 'user.test@gmail.com',
   subject: 'Importante',
   text: 'Message',
-}
+} */
 
 const sendMail = (emailData) => {
   return new Promise((resolve, reject) => {
@@ -69,10 +69,10 @@ const sendMail = (emailData) => {
         reject({error: true, data: error})
       } else {
         console.log('Correo enviado con éxito:', info.response)
-        resolve({done: true, data: info})
+        resolve({done: true, data: info, email: emailData.email})
       }
     })
   })
 }
 
-module.exports = { sendMail, mailOptions }
+module.exports = { sendMail }

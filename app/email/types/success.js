@@ -1,6 +1,6 @@
 const { logo } = require('../constants')
 
-let htmlInitial = (info) => `
+let htmlSuccess = (info) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,10 +17,11 @@ let htmlInitial = (info) => `
     </tr>
     <tr>
       <td style="text-align: center; background-color: #ffffff; padding: 10px">
-        <h1 style="margin: 0; color: #003AD8;">Felicidades su reservación ha sido recibida</h1>
-        <p style="margin: 10px 0; color: #666666;">En el trascurso del día se procederá a revisar su reservación y su posterior aprobación</p>
+        <h1 style="margin: 0; color: #15E765;">!Reservación ha sido aceptada</h1>
         <p style="margin: 10px 0; color: #666666;"><h3>Datos de la reserva</h3></p>
         <p style="margin: 10px 0; color: #666666;">${info}</p>
+        <h3 style="margin: 10px 0; color:#333333;">Puede realizar el pago en los siguiente números de cuenta</h3>
+        <p style="margin: 10px 0; color: #666666;"><b>B. Pichincha: </b>2356678979</p>
       </td>
     </tr>
   </table>
@@ -28,4 +29,4 @@ let htmlInitial = (info) => `
 </html>
 `
 
-module.exports = { htmlInitial }
+module.exports = { htmlSuccess }
