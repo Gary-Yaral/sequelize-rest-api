@@ -40,6 +40,10 @@ const Room = db.define(
       type: Sequelize.DOUBLE,
       allowNull: false
     },
+    publicId: {
+      type: Sequelize.STRING,
+      allowNull: false
+    },
   },
   { 
     tableName: 'room',

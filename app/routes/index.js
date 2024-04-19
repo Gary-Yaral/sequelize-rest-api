@@ -18,7 +18,8 @@ const routes = {
   'items': 'items',
   'subcategory': 'subcategories',
   'reservation': 'reservations',
-  'category': 'categories'
+  'category': 'categories',
+  'payment': 'payments'
 }
 
 // Enrutador de cada archivo

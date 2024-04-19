@@ -1,21 +1,25 @@
 const sequelize = require('../database/config')
 const { QueryTypes} = require('sequelize')
 const Room = require('../models/room.model')
-const { deteleImage } = require('../utils/deleteFile')
+const { deleteImage } = require('../utils/deleteFile')
 const { RESERVATION_TIME_TYPE, ERROR_PARENT_CODE } = require('../constants/db_constants')
 const ReservationType = require('../models/reservationType.model')
+const { uploadImage, deleteImageFromCloud } = require('../cloudinary/config')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
+    let cloudinary = await uploadImage(req.body.image)
+    const hasError = deleteImage(req.body.image)
+    if(hasError) {
+      return res.json({ error: true, msg: 'Error al eliminar imagen guardada previamente' })
+    }
+    req.body.image = cloudinary.secure_url
+    req.body.publicId = cloudinary.public_id
     const created = await Room.create(req.body, {transaction})
     // Si todo salio bien se guardan cambios en la base de datos
     if(!created) {
       await transaction.rollback() 
-      const hasError = deteleImage(req.body.image) 
-      if(hasError) {
-        return res.json({ error: true, msg: 'Error al eliminar imagen guardada previamente' })
-      }
       return res.json({
         error: true,
         msg: 'Error al intentar agregar local'
@@ -44,23 +48,26 @@ async function update(req, res) {
     if(req.body.image === '' || !req.body.image) {
       delete req.body.image
     }
+
+    if(req.body.image) {
+      let cloudinary = await uploadImage(req.body.image)
+      const hasError = deleteImage(req.body.image)
+      if(hasError) {
+        return res.json({ error: true, msg: 'Error al eliminar imagen guardada previamente' })
+      }
+      const removeImgFromCloud = await deleteImageFromCloud(req.body.found.publicId)
+      if(removeImgFromCloud.error) {
+        await transaction.rollback()
+        return res.json({ error: true, msg: 'Error al eliminar la imagen anterior' })
+      }
+      req.body.image = cloudinary.secure_url
+      req.body.publicId = cloudinary.public_id
+    }
     // Actualizamos los datos
     await Room.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Eliminamos la imagen anterior usando su path
-    if(req.body.image) {
-      const hasError = deteleImage(req.body.found.image)  
-      // Si no se pudo eliminar la imagen que guardamos devolvemos error
-      if(hasError) {
-        console.log(hasError)
-        await transaction.rollback()
-        return res.json({ error: true, msg: 'Error al eliminar imagenes anteriores' })
-      }
-    }
     // Creamos la data para los tipo de reservacion del local
     await ReservationType.update(
-      {
-        price: req.body.perHour
-      }, 
+      { price: req.body.perHour }, 
       {
         where: { 
           roomId: req.params.id, 
@@ -106,7 +113,7 @@ async function remove(req, res) {
       return res.json({ error: true, msg: 'Error al eliminar local'})
     }
     // Si todo ha ido bien
-    const hasError = deteleImage(image)
+    const hasError = deleteImage(image)
     if(hasError) {
       await transaction.rollback()
       return res.json({ error: true, msg: 'Error al eliminar las imagenes del local' })

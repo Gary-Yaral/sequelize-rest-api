@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 
 
-function deteleImage(imageName) {
+function deleteImage(imageName) {
   try {
     const folderPath = __dirname + '/../images/'
     const pathFile = path.join(folderPath, imageName)
@@ -35,5 +35,5 @@ function deteleImage(imageName) {
 }
 
 module.exports = { 
-  deteleImage
+  deleteImage
 }

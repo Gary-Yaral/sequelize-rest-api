@@ -1,20 +1,23 @@
 const sequelize = require('../database/config')
 const { Op, where, cast, col } = require('sequelize')
-const { deteleImage } = require('../utils/deleteFile')
+const { deleteImage } = require('../utils/deleteFile')
 const { getErrorFormat } = require('../utils/errorsFormat')
 const Item = require('../models/item.model')
 const Category = require('../models/category.model')
 const Subcategory = require('../models/subcategory.model')
+const { uploadImage, deleteImageFromCloud } = require('../cloudinary/config')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
+    let cloudinary = await uploadImage(req.body.image)
     const created = await Item.create({
       name: req.body.name.toUpperCase(),
       price: req.body.price,
       description: req.body.description,
       subcategoryId: req.body.subcategoryId,
-      image: req.body.image
+      image: cloudinary.secure_url,
+      publicId: cloudinary.public_id 
     })
 
     if(created) {
@@ -22,7 +25,7 @@ async function add(req, res) {
       return res.json({done: true, msg: 'Item guardado correctamente'})
     } else {
       transaction.rollback()
-      const hasError = deteleImage(req.body.image)
+      const hasError = deleteImage(req.body.image)
       if(hasError.error) {
         return res.json({error: true, msg: hasError.message})
       }
@@ -41,19 +44,26 @@ async function update(req, res) {
     if(req.body.image === '' || !req.body.image) {
       delete req.body.image
     }
+    if(req.body.image) {
+      let cloudinary = await uploadImage(req.body.image)
+      // Si no se pudo eliminar la imagen que guardamos devolvemos error
+      const hasError = deleteImage(req.body.image)  
+      if(hasError) {
+        await transaction.rollback()
+        return res.json({ error: true, msg: 'Error al eliminar la imagen cargada previamente' })
+      }
+      const removeImgFromCloud = await deleteImageFromCloud(req.body.found.publicId)
+      if(removeImgFromCloud.error) {
+        await transaction.rollback()
+        return res.json({ error: true, msg: 'Error al eliminar la imagen anterior' })
+      }
+      req.body.image = cloudinary.secure_url
+      req.body.publicId = cloudinary.public_id
+    }
     // Convertimos a mayusculas el nombre
     req.body.name = req.body.name.toUpperCase()
     // Actualizamos los datos
     await Item.update(req.body, {where: {id: req.params.id}}, {transaction})
-    // Eliminamos la imagen anterior usando su path
-    if(req.body.image) {
-      const hasError = deteleImage(req.body.found.image)  
-      // Si no se pudo eliminar la imagen que guardamos devolvemos error
-      if(hasError) {
-        await transaction.rollback()
-        return res.status(400).json({ error: true, msg: 'Errors al eliminar la imagen previa' })
-      }
-    }
     // Retornamos el mensaje de que todo ha ido bien
     await transaction.commit() 
     return res.json({
@@ -72,7 +82,7 @@ async function remove(req, res) {
   const transaction = await sequelize.transaction()
   try {
     //Extraemos el id de registro encontrado
-    let { id, image } = req.body.found
+    let { id, publicId } = req.body.found
     // si existe lo eliminamos
     const affectedRows = await Item.destroy({ where: { id }, transaction})
     // Si no lo encontramos devolvemos meensaje de error
@@ -80,11 +90,10 @@ async function remove(req, res) {
       await transaction.rollback()
       return res.json({ error: true, msg: 'No pudo eliminar el item' })
     }
-    // Si todo ha ido bien
-    const hasError = deteleImage(image)
-    if(hasError) {
+    const removeImgFromCloud = await deleteImageFromCloud(publicId)
+    if(removeImgFromCloud.error) {
       await transaction.rollback()
-      return res.json({ error: true, msg: 'Error al eliminar imagen del item' })
+      return res.json({ error: true, msg: 'Error al eliminar la imagen del item' })
     }
     // Guardamos los cambios en la base de datos
     await transaction.commit()

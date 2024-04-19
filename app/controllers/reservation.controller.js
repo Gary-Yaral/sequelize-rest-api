@@ -1,7 +1,7 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
 const { Op, QueryTypes } = require('sequelize')
-const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES } = require('../constants/db_constants')
+const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES, PAYMENT_STATUS } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
 const ScheduleType = require('../models/sheduleType.model')
 const ReservationPackage = require('../models/reservationPackage.model')
@@ -16,6 +16,7 @@ const UserRoles = require('../models/userRoleModel')
 const User = require('../models/userModel')
 const { htmlSuccess } = require('../email/types/success')
 const { htmlDenied } = require('../email/types/denied')
+const Payment = require('../models/payment.model')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -447,6 +448,8 @@ async function addRequestPropsForUpdateStatus(req) {
 async function updateReservationStatus(req, res) {
   const transaction = await sequelize.transaction() 
   try {
+    let { statusId } = req.body
+    let { id } = req.params
     let sameStatus = await hasSameStatus(req)
     if(sameStatus.error) { return res.json(sameStatus.error)}
     if(sameStatus.isSame) {
@@ -455,12 +458,20 @@ async function updateReservationStatus(req, res) {
         msg: 'El estado de la reservación ha sido actualizado correctamente. No se envió enviado email porque el estado anterior era el mismo'
       })
     }
-    let { statusId } = req.body
-    let { id } = req.params
+    const hasPayment = await hasApprovedPayment(id)
+    if(hasPayment.error) {
+      await transaction.rollback()
+      return res.json(hasPayment)
+    }
     let updatedReservation = await Reservation.update({ statusId }, { where: {id}, transaction })
     if(!updatedReservation) {
       await transaction.rollback()
       return res.json({error: true, msg: 'No se pudo actualizar el estado de la reservación'})
+    }
+    const processedPayment = await processPayment(req, transaction)
+    if(processedPayment.error) {
+      await transaction.rollback()
+      return res.json(processedPayment)
     }
     const addRequestPropsResult = await addRequestPropsForUpdateStatus(req)
     if(addRequestPropsResult.error) {
@@ -478,6 +489,57 @@ async function updateReservationStatus(req, res) {
     await transaction.rollback()
     console.log(error)
     return res.json({error: true, msg: 'Error al actualizar el estado de la reservación'})
+  }
+}
+
+async function hasApprovedPayment(reservationId) {
+  try {
+    const foundPayment = await Payment.findOne({
+      where: {
+        reservationId, 
+        paymentStatusId: PAYMENT_STATUS.APROBADA
+      }})
+    if(foundPayment) {
+      return {error: true, msg: 'Esta reservación ya tiene un pago revisado y aprobado'}
+    }
+    return {done: true}
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al consultar el pago aprobado de la reservación seleccionada'}
+  }
+
+}
+
+async function processPayment(req, transaction) {
+  try {
+    const foundPayment = await Payment.findOne({where: {reservationId: req.params.id, }})
+    // Estaba en espera y la aprobaron
+    if(req.body.statusId === RESERVATION_STATUS.EN_ESPERA || req.body.statusId === RESERVATION_STATUS.RECHAZADA) {
+      if(foundPayment) {
+        await deletePayment(req.params.id)
+      }
+      return {done: true}
+    }
+    let date = new Date()
+    await Payment.create({
+      date: date.toISOString().split('T')[0], 
+      reservationId: req.params.id, 
+      paymentStatusId: PAYMENT_STATUS.POR_REVISAR,
+      total: req.body.payPerLocal + req.body.payPerPackage
+    }, {transaction})
+    return {done: true}
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al validar proceso de actualización de pago'}
+  }
+}
+
+async function deletePayment(reservationId) {
+  try {
+    return await Payment.destroy({where: {reservationId}})
+  } catch (error) {
+    console.log(error)
+    return {error: true, msg: 'Error al eliminar el pago registrado'}
   }
 }
 
@@ -514,7 +576,16 @@ async function filterAndPaginate(req, res) {
 }
 
 function createPaginateQuery(paginate = false, pagination = {}) {
-  let query =  `SELECT 
+  let query =  getReservationsQuery() 
+  if(paginate && Object.keys(pagination).length > 0) {
+    query +=` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+  } 
+
+  return query
+} 
+
+function getReservationsQuery() {
+  return  `SELECT 
 		reservation.id,
 		reservation.roomId,
 		reservation.currentDate,
@@ -571,14 +642,8 @@ function createPaginateQuery(paginate = false, pagination = {}) {
 	    LEFT JOIN package 
 		ON reservation.packageId = package.id
 	    GROUP BY 
-		reservation.id` 
-    
-  if(paginate && Object.keys(pagination).length > 0) {
-    query +=` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
-  } 
-
-  return query
-} 
+		reservation.id`
+}
 
 function createPaginateFilterQuery(filter, paginate = false, pagination = {}) {
   const paginationQuery = createPaginateQuery()

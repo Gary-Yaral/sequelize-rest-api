@@ -28,6 +28,10 @@ const Item = db.define(
     image: {
       type: Sequelize.STRING,
       allowNull: false
+    },
+    publicId: {
+      type: Sequelize.STRING,
+      allowNull: false
     }
   },
   { 
