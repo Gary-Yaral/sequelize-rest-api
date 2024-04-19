@@ -41,14 +41,15 @@ CREATE TABLE `item` (
   `description` varchar(255) NOT NULL,
   `image` varchar(255) NOT NULL,
   `subcategoryId` int(11) NOT NULL,
+  `publicId` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `subcatId` (`subcategoryId`),
   CONSTRAINT `item_ibfk_2` FOREIGN KEY (`subcategoryId`) REFERENCES `subcategory` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `item` */
 
-insert  into `item`(`id`,`name`,`price`,`description`,`image`,`subcategoryId`) values (18,'DFSD',33,'dsds','DOS-1712005294067-ebcafd4f-2fea-42fd-82e2-b0af6ddf2fb4..jpg',7),(19,'GFDG',43,'fdgfg','UNO-1711930234753-beff5785-109c-4678-9cf0-a69b822a1416..jpg',3),(20,'PILSENER',1.5,'Cervez Pilsener','CERVEZA-1711975956774-53e1bc96-f472-4283-98a6-de31209553ea..jpg',8);
+insert  into `item`(`id`,`name`,`price`,`description`,`image`,`subcategoryId`,`publicId`) values (18,'DFSD',33,'dsds','https://res.cloudinary.com/dcougeze6/image/upload/v1713485507/anis_app/ehjqxh4tewjpasfydezz.jpg',7,'anis_app/ehjqxh4tewjpasfydezz'),(19,'GFDG',43,'fdgfg','https://res.cloudinary.com/dcougeze6/image/upload/v1713485493/anis_app/tnv99ff4ccjscphc3rem.jpg',3,'anis_app/tnv99ff4ccjscphc3rem'),(20,'PILSENER',1.5,'Cervez Pilsener','https://res.cloudinary.com/dcougeze6/image/upload/v1713485377/anis_app/tjsuoclndrcofmppnwim.jpg',8,'anis_app/tjsuoclndrcofmppnwim');
 
 /*Table structure for table `package` */
 
@@ -112,12 +113,16 @@ DROP TABLE IF EXISTS `payment`;
 
 CREATE TABLE `payment` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `datetime` datetime NOT NULL,
+  `date` date NOT NULL,
   `total` double NOT NULL,
   `paymentStatusId` int(11) NOT NULL,
   `reservationId` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `paymentStatusId` (`paymentStatusId`),
+  KEY `reservationId` (`reservationId`),
+  CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`paymentStatusId`) REFERENCES `payment_status` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `payment_ibfk_2` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `payment` */
 
@@ -134,6 +139,24 @@ CREATE TABLE `payment_status` (
 /*Data for the table `payment_status` */
 
 insert  into `payment_status`(`id`,`status`) values (1,'POR REVISAR'),(2,'APROBADO'),(3,'RECHAZO');
+
+/*Table structure for table `qualification` */
+
+DROP TABLE IF EXISTS `qualification`;
+
+CREATE TABLE `qualification` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `userRoleId` int(11) NOT NULL,
+  `stars` int(11) NOT NULL,
+  `roomId` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `userRoleId` (`userRoleId`),
+  KEY `roomId` (`roomId`),
+  CONSTRAINT `qualification_ibfk_1` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `qualification_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `qualification` */
 
 /*Table structure for table `reservation` */
 
@@ -157,11 +180,11 @@ CREATE TABLE `reservation` (
   CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`scheduleTypeId`) REFERENCES `schedule_type` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
 
-insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`scheduleTypeId`) values (29,'2024-04-21',10,7,65,1,'2024-04-11',1),(30,'2024-04-26',10,7,NULL,1,'2024-04-11',2),(31,'2024-04-24',10,7,NULL,1,'2024-04-11',2);
+insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`scheduleTypeId`) values (29,'2024-04-21',10,7,65,1,'2024-04-11',2),(30,'2024-04-26',10,7,NULL,1,'2024-04-11',2),(31,'2024-04-24',10,7,NULL,1,'2024-04-11',2),(63,'2024-04-02',10,7,NULL,1,'2024-04-13',2);
 
 /*Table structure for table `reservation_package` */
 
@@ -178,7 +201,7 @@ CREATE TABLE `reservation_package` (
   KEY `reservation_package_ibfk_1` (`reservationId`),
   CONSTRAINT `reservation_package_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reservation_package_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_package` */
 
@@ -197,11 +220,11 @@ CREATE TABLE `reservation_schedule` (
   PRIMARY KEY (`id`),
   KEY `reservation_time_detail_ibfk_1` (`reservationId`),
   CONSTRAINT `reservation_schedule_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_schedule` */
 
-insert  into `reservation_schedule`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (22,29,'01:00:00','05:30:00',50),(23,30,'00:00:00','23:30:00',240),(24,31,'00:00:00','23:30:00',240);
+insert  into `reservation_schedule`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (22,29,'00:00:00','23:30:00',240),(23,30,'00:00:00','23:30:00',240),(24,31,'00:00:00','23:30:00',240),(52,63,'00:00:00','23:30:00',240);
 
 /*Table structure for table `reservation_status` */
 
@@ -267,12 +290,13 @@ CREATE TABLE `room` (
   `m2` double NOT NULL,
   `capacity` double NOT NULL,
   `minTimeRent` double NOT NULL,
+  `publicId` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `room` */
 
-insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`capacity`,`minTimeRent`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','LOCAL-1712970308512-621d89c8-68f7-445e-bb3a-231010898d1e..jpg',200,400,4),(9,'ANIS 2','dssd dsd','0923523466','dgsdgsg@gmail.com','2 baños, 1 cocina, 1 sala de karaoke','LOCAL-1712971931351-f4a0a52e-35cb-41ba-90cb-f4ecb5c8b0ba..jpg',600,350,3);
+insert  into `room`(`id`,`name`,`address`,`telephone`,`email`,`description`,`image`,`m2`,`capacity`,`minTimeRent`,`publicId`) values (7,'ANIS','Perales y la que cruza','0943546342','miguelangel@gmail.com','dsgsdgg','https://res.cloudinary.com/dcougeze6/image/upload/v1713487155/anis_app/woww4lry3ofybb6q049j.jpg',200,400,4,'anis_app/woww4lry3ofybb6q049j'),(9,'ANIS 2','dssd dsd','0923523466','dgsdgsg@gmail.com','2 baños, 1 cocina, 1 sala de karaoke','https://res.cloudinary.com/dcougeze6/image/upload/v1713487218/anis_app/egq0qcr0bv9rojeh9opm.jpg',600,350,3,'anis_app/egq0qcr0bv9rojeh9opm');
 
 /*Table structure for table `schedule_type` */
 
@@ -325,7 +349,7 @@ CREATE TABLE `user` (
 
 /*Data for the table `user` */
 
-insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','GAVILANEZ MORA','0934464637','nerd@gmail.com','F_Nerd2023','$2b$10$28EWTo4H40OhnGJq8nfefOR4DZ0L6yxjbTHtv2K6O6Ju.lBsXJEGe'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','andresviteri2024@gmail.com','Andres_2024','$2b$10$FYds4LtmJaU2ohd4xSLKIOhXfcFaIS7NGvktqKMFGLdMpPoYqxrdK'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','miguelangel@gmail.com','Miusuario_2026','$2b$10$zGpaNABv19HpMnxteiZ4Z./wKNSkLQW/0RX89nJUUtLElWW/xBIQy');
+insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','GAVILANEZ MORA','0934464637','anisappreservation@gmail.com','F_Nerd2023','$2b$10$28EWTo4H40OhnGJq8nfefOR4DZ0L6yxjbTHtv2K6O6Ju.lBsXJEGe'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','andresviteri2024@gmail.com','Andres_2024','$2b$10$FYds4LtmJaU2ohd4xSLKIOhXfcFaIS7NGvktqKMFGLdMpPoYqxrdK'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','miguelangel@gmail.com','Miusuario_2026','$2b$10$zGpaNABv19HpMnxteiZ4Z./wKNSkLQW/0RX89nJUUtLElWW/xBIQy');
 
 /*Table structure for table `user_roles` */
 
