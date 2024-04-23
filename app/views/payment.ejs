@@ -9,6 +9,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
     body {
@@ -27,6 +28,20 @@
       max-width: 600px;
       background: white;
       padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    fieldset {
+      padding: 1rem;
+      border: 1px solid rgb(0, 217, 255);
+    }
+
+    h3 {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 1rem;
     }
     
     .title {
@@ -76,17 +91,123 @@
       z-index: 2;
       cursor: pointer;
     }
+    
+    #preview {
+      width: 100%;
+      height: fit-content;
+      transition: height 0.2s ease-in-out;
+    }
+
+    #preview img {
+      width: 100%;
+    }
+
+    .hidden {
+      height: 0;
+      transition: height 0.2s ease-in-out;
+    }
 
   </style>
 </head>
 <body>
   <form>
     <h1 class="title">Procesar pago</h1>
+    <fieldset>
+      <h3>Datos del pago</h3>
+      <p>
+        <b>Cliente: </b><%= Reservation.UserRole.dataValues.User.dataValues.name + ' ' + Reservation.UserRole.dataValues.User.dataValues.lastname %></br>
+        <b>Local: </b><%= Reservation.Room.name %></br>
+        <b>Fecha: </b><%= Reservation.date %></br>
+        <b>Horario: </b><%= Reservation.ReservationSchedules[0].dataValues.initialTime %> - <%= Reservation.ReservationSchedules[0].dataValues.finalTime %></br>
+        <b>Tipo Reserva: </b><%= Reservation.ScheduleType.dataValues.type %></br>
+        <b>Total: </b>$<%= total %></br>
+      </p>
+    </fieldset>
     <div class="buttons-block">
-      <input type="file" class="file">
+      <input id='paymentId' type="hidden" value="<%= id %>">
+      <input id="img-file" type="file" class="file">
       <button type="submit">Enviar</button>
     </div>
-
+    <div id="preview" class="img-container hidden">
+      <img id="img-loaded" alt="preview image">
+    </div>
   </form>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const fileInput = document.querySelector('#img-file')
+    const preview = document.querySelector('#preview')
+    const image = preview.querySelector('#img-loaded')
+    const form = document.querySelector('form')
+    var backup = []
+    form.onsubmit = ($event) => {
+      $event.preventDefault()
+      if(backup.length === 0) {
+        return Swal.fire({
+          title: '¡Error!',
+          text: 'Debes cargar un comprobante',
+          icon: 'error',
+          confirmButtonText: 'Ok, entiendo'
+        })
+      }
+
+      Swal.fire({
+        title: '¡Atención!',
+        text: '¿Deseas enviar el comprobante?',
+        icon: 'info',
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'Si, enviar'
+      }).then(async (action) => {
+        if(action.isConfirmed) {
+          await sendData()
+        }
+      })
+    }
+
+    async function sendData() {
+      const id = document.querySelector('#paymentId').value
+      const formData = getFormData()
+      const response = await (await fetch(`/api/payments/status/${id}`, {
+        method: 'PUT',
+        body: formData
+      })).json()
+      console.log(response)
+    }
+
+    function getFormData() {
+      try {
+        const formData = new FormData()
+        formData.append('voucher', backup[0])
+        return formData
+      } catch (error) {
+        console.log(error)
+        return {
+          error: true, 
+          msg: 'Error al crear y guardar datos en el FormData'
+        }
+      }
+    }
+
+    fileInput.onchange = ($event) => {
+      const files = $event.target.files
+      if($event.target.files.length === 0 && backup.length === 0) {
+        preview.classList.remove('hidden')
+        image.src = "" 
+        return
+      }
+      if($event.target.files.length > 0 ) {
+        backup = $event.target.files
+      } 
+      // Creamos el reader
+      const reader = new FileReader()
+      reader.onload = ($evt) => {
+        image.src = $evt.target.result
+      }
+      if($event.target.files.length > 0) {
+        backup = $event.target.files
+      }
+      reader.readAsDataURL(backup[0])
+    }
+  </script>
 </body>
 </html>

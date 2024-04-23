@@ -8,6 +8,7 @@ const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const { PAYMENT_STATUS } = require('../constants/db_constants')
 const { getServerData } = require('../utils/server')
+const { uploadImage } = require('../cloudinary/config')
 
 async function add(req, res) {
   const transaction = await db.transaction()
@@ -36,7 +37,9 @@ async function update(req, res) {
 async function updateStatus(req, res) {
   const transaction = await db.transaction()
   try {
-    await Payment.update(req.body, {where: {id: req.params.id}})
+    console.log(req.body)
+    /* const uploaded = uploadImage(req.body.image) */
+    /* await Payment.update(, {where: {id: req.params.id}}) */
     if(req.body.paymentStatusId === PAYMENT_STATUS.POR_REVISAR) {
       // Enviar mensaje de ser recibida 
     }
@@ -166,7 +169,7 @@ async function getPaymentStatuses(req, res) {
 }
 
 async function processVoucher(req, res) {
-  return res.render('payment')
+  return res.render('payment', req.body.found)
 }
 
 module.exports = {

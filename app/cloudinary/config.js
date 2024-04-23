@@ -10,11 +10,14 @@ cloudinary.config({
 
 // Ruta de la imagen que quieres subir
 const folderPath = './app/images/'
-const folderCloudinary = 'anis_app'
+const folderNameCloudinary = 'anis_app'
 
 // Subir la imagen a Cloudinary
-async function uploadImage(imgName) {
+async function uploadImage(imgName, folderCloudinary = '') {
   const fullPath = folderPath + imgName
+  if(folderCloudinary === '') {
+    folderCloudinary = folderNameCloudinary
+  }
   return await new Promise((resolve, reject) => {
     cloudinary.uploader.upload(fullPath, { folder: folderCloudinary }, (error, result) => {
       if (error) {
@@ -24,7 +27,7 @@ async function uploadImage(imgName) {
       }
     })
   })
-} 
+}  
 
 async function deleteImageFromCloud(publicId) {
   try {
