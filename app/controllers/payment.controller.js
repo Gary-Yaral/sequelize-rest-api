@@ -1,8 +1,16 @@
-const sequelize = require('../database/config')
+const db = require('../database/config')
+const { Op, col, where } = require('sequelize')
 const Payment = require('../models/payment.model')
+const PaymentStatus = require('../models/paymentStatus.model')
+const Reservation = require('../models/reservation.model')
+const ReservationSchedules = require('../models/reservationSchedule.model')
+const User = require('../models/userModel')
+const UserRoles = require('../models/userRoleModel')
+const { PAYMENT_STATUS } = require('../constants/db_constants')
+const { getServerData } = require('../utils/server')
 
 async function add(req, res) {
-  const transaction = await sequelize.transaction()
+  const transaction = await db.transaction()
   try {
     //
   } catch (error) {
@@ -13,7 +21,7 @@ async function add(req, res) {
 }
 
 async function update(req, res) {
-  const transaction = await sequelize.transaction()
+  const transaction = await db.transaction()
   try { 
     //salió guardamos los cambios
     //await transaction.commit()
@@ -25,8 +33,30 @@ async function update(req, res) {
   }
 }
 
+async function updateStatus(req, res) {
+  const transaction = await db.transaction()
+  try {
+    await Payment.update(req.body, {where: {id: req.params.id}})
+    if(req.body.paymentStatusId === PAYMENT_STATUS.POR_REVISAR) {
+      // Enviar mensaje de ser recibida 
+    }
+    if(req.body.paymentStatusId === PAYMENT_STATUS.APROBADA) {
+      // Enviar mensaje de que se aprobo
+    }
+    if(req.body.paymentStatusId === PAYMENT_STATUS.RECHAZADA) {
+      // Enviar mensaje de que fue rechazada
+    }
+    await transaction.commit()
+    return res.json({done: true, msg: 'Se ha actualizado el estado del pago', server: getServerData(req)})
+  } catch (error) {
+    console.log(error)
+    await transaction.rollback()
+    return res.json({error: true, msg: 'Error al actualizar el estado del pago'})
+  }
+}
+
 async function remove(req, res) {
-  const transaction = await sequelize.transaction()
+  const transaction = await db.transaction()
   try {
     // Si todo ha ido bien guardamos los cambios
     await transaction.commit()
@@ -43,11 +73,29 @@ async function paginate(req, res) {
     const currentPage = parseInt(req.query.currentPage)
     const perPage = parseInt(req.query.perPage)
     const offset = (currentPage - 1) * perPage
+    const payments = await Payment.findAndCountAll({
+      include: [
+        {
+          model: Reservation,
+          include: [
+            {
+              model: UserRoles,
+              include: [User]
+            },
+            ReservationSchedules
+          ]
+        },
+        PaymentStatus
+      ],
+      raw: true,
+      limit: perPage,
+      offset
+    })
     
-    return res.json({ result: true, /* data: {count, rows} */ })
+    return res.json({ result: true,  data: payments})
   } catch (error) {
     console.log(error)
-    return res.json({ error: true, msg: 'Error al paginar las reservaciones' })
+    return res.json({ error: true, msg: 'Error al paginar los pagos' })
   }
 }
 
@@ -58,11 +106,34 @@ async function filterAndPaginate(req, res) {
     const currentPage = parseInt(req.body.currentPage)
     const perPage = parseInt(req.body.perPage)
     const offset = (currentPage - 1) * perPage
-    // Realizar la consulta con paginación y filtros
-    // const count = (await sequelize.query(createPaginateFilterQuery(filter), {type: QueryTypes.SELECT})).length
-    //const rows = await sequelize.query(createPaginateFilterQuery(filter, true, {limit: perPage, offset}), {type: QueryTypes.SELECT})
-    
-    return res.json({ result: true, /* data: {count, rows} */}) 
+    const payments = await Payment.findAndCountAll({
+      include: [
+        {
+          model: Reservation,
+          include: [
+            {
+              model: UserRoles,
+              include: [User]
+            }
+          ],
+        },
+        PaymentStatus
+      ],
+      where: {
+        [Op.or]: [
+          where(col('Reservation.date'), { [Op.like]: `%${filter}%` }),
+          where(col('Payment.total'), { [Op.like]: `%${filter.toString()}%` }),
+          where(col('Reservation->UserRole->User.name'), { [Op.like]: `%${filter}%` }),
+          where(col('Reservation->UserRole->User.lastname'), { [Op.like]: `%${filter}%` }),
+          where(col('PaymentStatus.status'), { [Op.like]: `%${filter}%` }),
+          where(col('Payment.date'), { [Op.like]: `%${filter}%` })
+        ]
+      },
+      raw: true,
+      limit: perPage,
+      offset
+    })
+    return res.json({ result: true,  data: payments})
   } catch(error) {
     console.log(error)
     return res.json({ error: true, msg: 'Error al filtrar y paginar los locales' })
@@ -89,12 +160,24 @@ async function findOne(req, res) {
   }
 }
 
+async function getPaymentStatuses(req, res) {
+  const paymentTypes = await PaymentStatus.findAll()
+  return res.json({data: paymentTypes})
+}
+
+async function processVoucher(req, res) {
+  return res.render('payment')
+}
+
 module.exports = {
   add,
   update,
   remove,
   getAll,
   findOne,
-  paginate, 
-  filterAndPaginate
+  paginate,
+  updateStatus, 
+  getPaymentStatuses,
+  filterAndPaginate,
+  processVoucher
 }

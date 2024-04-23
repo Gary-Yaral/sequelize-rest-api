@@ -6,6 +6,12 @@ const Reservation = require('./reservation.model')
 const Payment = db.define(
   'Payment',
   {
+    id: {
+      type: Sequelize.DataTypes.UUID,
+      allowNull: false, 
+      primaryKey: true,
+      defaultValue: Sequelize.UUIDV4
+    },
     date:  {
       type: Sequelize.STRING,
       allowNull: false
@@ -15,12 +21,20 @@ const Payment = db.define(
       allowNull: false
     },
     reservationId:  {
-      type: Sequelize.INTEGER,
+      type: Sequelize.STRING,
       allowNull: false
     },
     paymentStatusId:  {
       type: Sequelize.INTEGER,
       allowNull: false
+    },
+    image:  {
+      type: Sequelize.STRING,
+      allowNull: true
+    },
+    publicId:  {
+      type: Sequelize.STRING,
+      allowNull: true
     }
   },
   { 

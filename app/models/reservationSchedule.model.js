@@ -6,7 +6,7 @@ const ReservationSchedules = db.define(
   'ReservationSchedules',
   {
     reservationId:{
-      type: Sequelize.INTEGER,
+      type: Sequelize.STRING,
       allowNull: false,
       references: {
         model: Reservation,

@@ -1,6 +1,6 @@
 const { logo } = require('../constants')
 
-let htmlSuccess = (info) => `
+let htmlSuccess = (info, accounts = [], endpoint = '') => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,12 +21,22 @@ let htmlSuccess = (info) => `
         <p style="margin: 10px 0; color: #666666;"><h3>Datos de la reserva</h3></p>
         <p style="margin: 10px 0; color: #666666;">${info}</p>
         <h3 style="margin: 10px 0; color:#333333;">Puede realizar el pago en los siguiente números de cuenta</h3>
-        <p style="margin: 10px 0; color: #666666;"><b>B. Pichincha: </b>2356678979</p>
+        <p style="margin: 10px 0; color: #666666;">
+          ${concatAccountstoPay(accounts)}
+        </p>
+        <p>Para cargar el comprobante de pago de la reservación, lo puedes hacer en el siguiente enlace: <a href="${endpoint}">Enviar comprobante</p>
       </td>
     </tr>
   </table>
 </body>
 </html>
 `
+function concatAccountstoPay(accounts) {
+  var str = ''
+  accounts.forEach((data) => {
+    str += `<b>${data.bank} - ${data.account} - ${data.type}</b></br>`
+  })
+  return str
+}
 
 module.exports = { htmlSuccess }

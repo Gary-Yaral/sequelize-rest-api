@@ -7,7 +7,7 @@ const ReservationPackage = db.define(
   'ReservationPackage',
   {
     reservationId:{
-      type: Sequelize.INTEGER,
+      type: Sequelize.STRING,
       allowNull: false,
       references: {
         model: Reservation,

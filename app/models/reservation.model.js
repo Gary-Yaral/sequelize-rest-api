@@ -9,6 +9,12 @@ const ScheduleType = require('./sheduleType.model')
 const Reservation = db.define(
   'Reservation',
   {
+    id: {
+      type: Sequelize.DataTypes.UUID,
+      allowNull: false, 
+      primaryKey: true,
+      defaultValue: Sequelize.UUIDV4
+    },
     currentDate:  {
       type: Sequelize.DataTypes.DATE,
       allowNull: false,

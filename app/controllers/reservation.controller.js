@@ -1,7 +1,7 @@
 const sequelize = require('../database/config')
 const Reservation = require('../models/reservation.model')
 const { Op, QueryTypes } = require('sequelize')
-const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES, PAYMENT_STATUS } = require('../constants/db_constants')
+const { RESERVATION_STATUS, RESERVATION_TIME_TYPE, ALL_DAY_TIMES, PAYMENT_STATUS, DEFAULT_PAYMENT_IMAGE, DEFAULT_PAYMENT_IMAGE_PUBLIC_ID, PROCESS_VOUCHER_ROUTE_FULL } = require('../constants/db_constants')
 const PackageDetail = require('../models/packageDetail.model')
 const ScheduleType = require('../models/sheduleType.model')
 const ReservationPackage = require('../models/reservationPackage.model')
@@ -17,6 +17,7 @@ const User = require('../models/userModel')
 const { htmlSuccess } = require('../email/types/success')
 const { htmlDenied } = require('../email/types/denied')
 const Payment = require('../models/payment.model')
+const { getEndPointRoute } = require('../utils/server')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -89,7 +90,7 @@ async function add(req, res) {
 async function sendNewEmail(req, type) {
   try {
     let { roomId, initialTime, finalTime, date } = req.body
-    let msgData = await createMsgData(type, roomId, initialTime, finalTime, date)
+    let msgData = await createMsgData(req, type, roomId, initialTime, finalTime, date)
     if(msgData.error) { return msgData }
     let emailUser = await getUserEmail(req, type)
     if(emailUser.error) { return emailUser }
@@ -106,7 +107,7 @@ async function sendNewEmail(req, type) {
   }
 }
 
-async function createMsgData(type, roomId, initialTime, finalTime, date) {
+async function createMsgData(req, type, roomId, initialTime, finalTime, date) {
   try {
     let text = ''
     const local = await Room.findOne({where: {id: roomId}})
@@ -120,7 +121,11 @@ async function createMsgData(type, roomId, initialTime, finalTime, date) {
     }
   
     if(type === RESERVATION_STATUS.APROBADA) {
-      return {text: htmlSuccess(str)}
+      const accounts = [
+        {bank: 'Banco Pichincha', account: '22032566433', type: 'Corriente'}
+      ]
+      const endpoint = getEndPointRoute(req, PROCESS_VOUCHER_ROUTE_FULL + req.params.id)
+      return {text: htmlSuccess(str, accounts, endpoint)}
     }
     if(type === RESERVATION_STATUS.RECHAZADA) {
       return {text: htmlDenied(str)}
@@ -517,6 +522,7 @@ async function processPayment(req, transaction) {
     if(req.body.statusId === RESERVATION_STATUS.EN_ESPERA || req.body.statusId === RESERVATION_STATUS.RECHAZADA) {
       if(foundPayment) {
         await deletePayment(req.params.id)
+        // Eliminar la imagen del pago tambien
       }
       return {done: true}
     }
@@ -525,7 +531,9 @@ async function processPayment(req, transaction) {
       date: date.toISOString().split('T')[0], 
       reservationId: req.params.id, 
       paymentStatusId: PAYMENT_STATUS.POR_REVISAR,
-      total: req.body.payPerLocal + req.body.payPerPackage
+      total: req.body.payPerLocal + req.body.payPerPackage,
+      image: DEFAULT_PAYMENT_IMAGE,
+      publicId: DEFAULT_PAYMENT_IMAGE_PUBLIC_ID
     }, {transaction})
     return {done: true}
   } catch (error) {

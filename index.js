@@ -7,9 +7,9 @@ const app = express()
 const cors = require('cors')
 const PORT = process.env.PORT || 4000 
 
-app.use(cors({
-  origin: '*'
-}))
+app.use(cors({ origin: '*' }))
+app.set('view engine', 'ejs')
+app.set('views', path.join(__dirname, 'app', 'views'))
 app.use(express.json())
 app.use('/api/images', express.static(path.join(__dirname, 'app' ,'images')))
 app.use('/api', routes.router)

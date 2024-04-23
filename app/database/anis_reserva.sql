@@ -112,19 +112,23 @@ insert  into `package_status`(`id`,`status`) values (1,'DISPONIBLE'),(2,'NO DISP
 DROP TABLE IF EXISTS `payment`;
 
 CREATE TABLE `payment` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` varchar(100) NOT NULL DEFAULT '''UUID()''',
   `date` date NOT NULL,
   `total` double NOT NULL,
   `paymentStatusId` int(11) NOT NULL,
-  `reservationId` int(11) NOT NULL,
+  `reservationId` varchar(100) NOT NULL,
+  `image` varchar(500) DEFAULT NULL,
+  `publicId` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `paymentStatusId` (`paymentStatusId`),
   KEY `reservationId` (`reservationId`),
   CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`paymentStatusId`) REFERENCES `payment_status` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `payment_ibfk_2` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  CONSTRAINT `payment_ibfk_2` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `payment` */
+
+insert  into `payment`(`id`,`date`,`total`,`paymentStatusId`,`reservationId`,`image`,`publicId`) values ('0440cda6-5e0f-4fae-859f-4dfe10edc8c6','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('31f9930f-f6d3-41fe-898d-0d2f07b63cb1','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('51af957a-150f-4d7c-b357-ebaa1a222d76','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('709e7895-3d14-4299-89dc-3b4c455dba85','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('af77d01a-1356-4031-8b0e-9452ae284de5','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('b9b3179b-ebc8-4896-8aef-777bbcd7bd5d','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg');
 
 /*Table structure for table `payment_status` */
 
@@ -163,7 +167,7 @@ CREATE TABLE `qualification` (
 DROP TABLE IF EXISTS `reservation`;
 
 CREATE TABLE `reservation` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` varchar(100) NOT NULL DEFAULT 'UUID()',
   `date` date NOT NULL,
   `userRoleId` int(11) NOT NULL,
   `roomId` int(11) NOT NULL,
@@ -180,11 +184,11 @@ CREATE TABLE `reservation` (
   CONSTRAINT `reservation_ibfk_2` FOREIGN KEY (`roomId`) REFERENCES `room` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_3` FOREIGN KEY (`userRoleId`) REFERENCES `user_roles` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `reservation_ibfk_4` FOREIGN KEY (`scheduleTypeId`) REFERENCES `schedule_type` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation` */
 
-insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`scheduleTypeId`) values (29,'2024-04-21',10,7,65,1,'2024-04-11',2),(30,'2024-04-26',10,7,NULL,1,'2024-04-11',2),(31,'2024-04-24',10,7,NULL,1,'2024-04-11',2),(63,'2024-04-02',10,7,NULL,1,'2024-04-13',2);
+insert  into `reservation`(`id`,`date`,`userRoleId`,`roomId`,`packageId`,`statusId`,`currentDate`,`scheduleTypeId`) values ('93a0cab7-eb58-4e25-ad86-d1da5dec62e3','2024-04-20',10,7,65,2,'2024-04-23',2);
 
 /*Table structure for table `reservation_package` */
 
@@ -195,17 +199,17 @@ CREATE TABLE `reservation_package` (
   `itemId` int(11) NOT NULL,
   `quantity` double NOT NULL,
   `price` double NOT NULL,
-  `reservationId` int(11) NOT NULL,
+  `reservationId` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `itemId` (`itemId`),
-  KEY `reservation_package_ibfk_1` (`reservationId`),
-  CONSTRAINT `reservation_package_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `reservation_package_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `reservationId` (`reservationId`),
+  CONSTRAINT `reservation_package_ibfk_2` FOREIGN KEY (`itemId`) REFERENCES `item` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `reservation_package_ibfk_3` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_package` */
 
-insert  into `reservation_package`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (18,18,1,33,29),(19,19,1,43,29);
+insert  into `reservation_package`(`id`,`itemId`,`quantity`,`price`,`reservationId`) values (58,18,1,33,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3'),(59,19,1,43,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3');
 
 /*Table structure for table `reservation_schedule` */
 
@@ -213,18 +217,18 @@ DROP TABLE IF EXISTS `reservation_schedule`;
 
 CREATE TABLE `reservation_schedule` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `reservationId` int(11) NOT NULL,
+  `reservationId` varchar(100) NOT NULL,
   `initialTime` time NOT NULL,
   `finalTime` time NOT NULL,
   `price` double NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `reservation_time_detail_ibfk_1` (`reservationId`),
+  KEY `reservationId` (`reservationId`),
   CONSTRAINT `reservation_schedule_ibfk_1` FOREIGN KEY (`reservationId`) REFERENCES `reservation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `reservation_schedule` */
 
-insert  into `reservation_schedule`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (22,29,'00:00:00','23:30:00',240),(23,30,'00:00:00','23:30:00',240),(24,31,'00:00:00','23:30:00',240),(52,63,'00:00:00','23:30:00',240);
+insert  into `reservation_schedule`(`id`,`reservationId`,`initialTime`,`finalTime`,`price`) values (53,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','00:00:00','23:30:00',240);
 
 /*Table structure for table `reservation_status` */
 
@@ -387,286 +391,6 @@ CREATE TABLE `user_status` (
 /*Data for the table `user_status` */
 
 insert  into `user_status`(`id`,`name`) values (1,'ACTIVO'),(2,'BLOQUEADO');
-
-/* Procedure structure for procedure `CountReservationsByFilter` */
-
-/*!50003 DROP PROCEDURE IF EXISTS  `CountReservationsByFilter` */;
-
-DELIMITER $$
-
-/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `CountReservationsByFilter`(IN filter VARCHAR(500))
-SELECT COUNT(*) AS `count`
-	FROM (
-	SELECT 
-		r.id,
-		r.roomId,
-		r.currentDate,
-		rsch.initialTime,
-		rsch.finalTime,
-		r.date,
-		r.timeTypeId,
-		r.packageId,
-		rs.status,
-		rm.capacity,
-		rm.image,
-		rm.m2,
-		CONCAT(u.name, ' ', u.lastname) AS userName,
-		rl.role,
-		rm.name AS roomName,
-		COALESCE(SUM(rp.price * rp.quantity), 0) AS payPerPackage,
-		rtt.type,
-		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
-		CASE 
-			WHEN r.timeTypeId = 1 THEN 0
-			ELSE 1
-		END AS days,
-		rtd.price,
-		CASE 
-		    WHEN r.timeTypeId = 1 THEN COALESCE((rtdl.price * (TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600)), 0)
-		    ELSE rtd.price
-		END AS payPerLocal,
-		CASE 
-		    WHEN COALESCE(SUM(rp.price * rp.quantity), 0) = 0  THEN 'N0'
-		    ELSE 'SI'
-		END AS includePackage,
-		pk.name AS packageName
-	    FROM 
-		reservation r
-	    LEFT JOIN 
-		reservation_package rp ON r.id = rp.reservationId
-	    LEFT JOIN
-		room rm ON r.roomId = rm.id
-	    LEFT JOIN
-		reservation_status rs ON r.statusId = rs.id
-	    LEFT JOIN
-		reservation_schedule rsch ON r.id = rsch.reservationId
-	    LEFT JOIN
-		room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
-	    LEFT JOIN
-		room_time_type rtt ON rtdl.timeType = rtt.id
-	    LEFT JOIN
-		user_roles ur ON r.userRoleId = ur.id
-	    LEFT JOIN
-		USER u ON ur.userId = u.id
-	    LEFT JOIN
-		role rl ON rl.id = ur.roleId
-	    LEFT JOIN
-		package pk ON r.packageId = pk.id
-	    GROUP BY 
-		r.id
-	) AS subquery
-	WHERE 
-		subquery.currentDate LIKE CONCAT('%', filter, '%') OR
-		subquery.initialTime LIKE CONCAT('%', filter, '%') OR
-		subquery.finalTime LIKE CONCAT('%', filter, '%') OR
-		subquery.date LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.status) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		subquery.capacity LIKE CONCAT('%', filter, '%') OR
-		subquery.m2 LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.userName) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.role) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.roomName) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.payPerPackage) LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.type) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		subquery.hours LIKE CONCAT('%', filter, '%') OR
-		subquery.days LIKE CONCAT('%', filter, '%') OR
-		subquery.price LIKE CONCAT('%', filter, '%') OR
-		subquery.payPerLocal LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.includePackage) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.packageName) LIKE LOWER(CONCAT('%', filter, '%')) */$$
-DELIMITER ;
-
-/* Procedure structure for procedure `GetHours` */
-
-/*!50003 DROP PROCEDURE IF EXISTS  `GetHours` */;
-
-DELIMITER $$
-
-/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetHours`(IN room_id INT, IN found_date DATE, IN ini_time VARCHAR(100), IN fin_time VARCHAR(100))
-SELECT 
-		rsch.id,
-		rsch.reservationId,
-		case 
-		when rsch.initialTime = '00:00' and rsch.finalTime = '23:30' then '- Reservado todo el día'
-		else CONCAT('- ','Reservado de ', rsch.initialTime, ' a ',rsch.finalTime)
-		end as selected
-	FROM reservation_schedule rsch
-	INNER JOIN reservation r
-	ON r.id = rsch.reservationId
-	WHERE r.date = found_date AND r.roomId = room_id AND (ini_time < rsch.finalTime AND fin_time > rsch.initialTime) */$$
-DELIMITER ;
-
-/* Procedure structure for procedure `GetReservationsByFilterPagination` */
-
-/*!50003 DROP PROCEDURE IF EXISTS  `GetReservationsByFilterPagination` */;
-
-DELIMITER $$
-
-/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetReservationsByFilterPagination`(IN limit_value INT, offset_value INT, IN filter VARCHAR(500))
-SELECT *
-	FROM (
-	SELECT 
-		r.id,
-		r.roomId,
-		r.currentDate,
-		rsch.initialTime,
-		rsch.finalTime,
-		r.date,
-		r.timeTypeId,
-		r.packageId,
-		rs.status,
-		rm.capacity,
-		rm.image,
-		rm.m2,
-		CONCAT(u.name, ' ', u.lastname) AS userName,
-		rl.role,
-		rm.name AS roomName,
-		COALESCE(SUM(rp.price * rp.quantity), 0) AS payPerPackage,
-		rtt.type,
-		COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
-		CASE 
-			WHEN r.timeTypeId = 1 THEN 0
-			ELSE 1
-		END AS days,
-		rtd.price,
-		CASE 
-		    WHEN r.timeTypeId = 1 THEN COALESCE((rsch.price * (TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rtd.initialTime)) / 3600)), 0)
-		    ELSE rtd.price
-		END AS payPerLocal,
-		CASE 
-		    WHEN COALESCE(SUM(rp.price * rp.quantity), 0) = 0  THEN 'N0'
-		    ELSE 'SI'
-		END AS includePackage,
-		pk.name AS packageName
-	    FROM 
-		reservation r
-	    LEFT JOIN 
-		reservation_package rp ON r.id = rp.reservationId
-	    LEFT JOIN
-		room rm ON r.roomId = rm.id
-	    LEFT JOIN
-		reservation_status rs ON r.statusId = rs.id
-	    LEFT JOIN
-		reservation_schedule rsch ON r.id = rsch.reservationId
-	    LEFT JOIN
-		room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
-	    LEFT JOIN
-		room_time_type rtt ON rtdl.timeType = rtt.id
-	    LEFT JOIN
-		user_roles ur ON r.userRoleId = ur.id
-	    LEFT JOIN
-		USER u ON ur.userId = u.id
-	    LEFT JOIN
-		role rl ON rl.id = ur.roleId
-	    LEFT JOIN
-		package pk ON r.packageId = pk.id
-	    GROUP BY 
-		r.id
-	) AS subquery
-	WHERE 
-		subquery.currentDate LIKE CONCAT('%', filter, '%') OR
-		subquery.initialTime LIKE CONCAT('%', filter, '%') OR
-		subquery.finalTime LIKE CONCAT('%', filter, '%') OR
-		subquery.date LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.status) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		subquery.capacity LIKE CONCAT('%', filter, '%') OR
-		subquery.m2 LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.userName) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.role) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.roomName) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.payPerPackage) LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.type) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		subquery.hours LIKE CONCAT('%', filter, '%') OR
-		subquery.days LIKE CONCAT('%', filter, '%') OR
-		subquery.price LIKE CONCAT('%', filter, '%') OR
-		subquery.payPerLocal LIKE CONCAT('%', filter, '%') OR
-		LOWER(subquery.includePackage) LIKE LOWER(CONCAT('%', filter, '%')) OR
-		LOWER(subquery.packageName) LIKE LOWER(CONCAT('%', filter, '%'))
-	LIMIT limit_value OFFSET offset_value */$$
-DELIMITER ;
-
-/* Procedure structure for procedure `GetReservationsByPagination` */
-
-/*!50003 DROP PROCEDURE IF EXISTS  `GetReservationsByPagination` */;
-
-DELIMITER $$
-
-/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `GetReservationsByPagination`(IN offset_value INT, IN limit_value INT)
-BEGIN
-    SELECT 
-        r.id,
-        r.roomId,
-        r.currentDate,
-        rsch.initialTime,
-        rsch.finalTime,
-        r.date,
-        r.timeTypeId,
-        r.packageId,
-        rs.status,
-        rm.capacity,
-        rm.image,
-        rm.m2,
-        CONCAT(u.name, ' ', u.lastname) AS userName,
-        rl.role,
-        rm.name AS roomName,
-        COALESCE(SUM(rp.price * rp.quantity), 0) AS payPerPackage,
-        rtt.type,
-        COALESCE(CONVERT(TRUNCATE(TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rsch.initialTime)) / 3600, 2), DOUBLE), 0) AS hours,
-        CASE 
-            WHEN r.timeTypeId = 1 THEN 0
-            ELSE 1
-        END AS days,
-        rtd.price,
-        CASE 
-            WHEN r.timeTypeId = 1 THEN COALESCE((rsch.price * (TIME_TO_SEC(TIMEDIFF(rsch.finalTime, rtd.initialTime)) / 3600)), 0)
-            ELSE rtd.price
-        END AS payPerLocal,
-        CASE 
-            WHEN COALESCE(SUM(rp.price * rp.quantity), 0) = 0  THEN 'N0'
-            ELSE 'SI'
-        END AS includePackage,
-        pk.name AS packageName
-    FROM 
-        reservation r
-    LEFT JOIN 
-        reservation_package rp ON r.id = rp.reservationId
-    LEFT JOIN
-        room rm ON r.roomId = rm.id
-    LEFT JOIN
-        reservation_status rs ON r.statusId = rs.id
-    LEFT JOIN
-        reservation_schedule rsch ON r.id = rsch.reservationId
-    LEFT JOIN
-        room_time_detail rtdl ON r.timeTypeId = rtdl.id AND r.roomId = rtdl.roomId
-    LEFT JOIN
-        room_time_type rtt ON rtdl.timeType = rtt.id
-    LEFT JOIN
-        user_roles ur ON r.userRoleId = ur.id
-    LEFT JOIN
-        USER u ON ur.userId = u.id
-    LEFT JOIN
-        role rl ON rl.id = ur.roleId
-    LEFT JOIN
-        package pk ON r.packageId = pk.id
-    GROUP BY 
-        r.id
-    LIMIT offset_value, limit_value;
-END */$$
-DELIMITER ;
-
-/* Procedure structure for procedure `ValidateHours` */
-
-/*!50003 DROP PROCEDURE IF EXISTS  `ValidateHours` */;
-
-DELIMITER $$
-
-/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `ValidateHours`(in room_id int, in found_date date, in ini_time varchar(100), in fin_time varchar(100))
-SELECT count(*) as total
-	FROM reservation_schedule rsch
-	inner join reservation r
-	ON r.id = rsch.reservationId
-	WHERE r.date = found_date and r.roomId = room_id AND (ini_time < rsch.finalTime AND fin_time > rsch.initialTime) */$$
-DELIMITER ;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
