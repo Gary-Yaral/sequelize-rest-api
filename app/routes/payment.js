@@ -32,7 +32,7 @@ router.get(`${PROCESS_VOUCHER_ROUTE}:reservationId`, validatePayment, paymentCon
 router.get('/', validateToken, paymentController.paginate)
 router.get('/statuses', validateToken, paymentController.getPaymentStatuses)
 router.post('/filter', validateToken, paymentController.filterAndPaginate)
-router.put('/status/:id', upload.single('voucher'), paymentController.updateStatus)
+router.put('/status/:id', upload.single('voucher'), paymentController.approvePayment)
 /*router.get('/statuses', validateToken, reservationController.getStatusTypes)
 router.get('/types', validateToken, reservationController.getScheduleTypes)
 router.post('/package', validateToken, reservationController.getReservationPackageData)

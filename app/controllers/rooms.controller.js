@@ -84,7 +84,8 @@ async function update(req, res) {
           roomId: req.params.id, 
           scheduleTypeId: RESERVATION_TIME_TYPE.PER_DAY
         }
-      }, {transaction}
+      }, 
+      {transaction}
     )
     // Retornamos el mensaje de que todo ha ido bien
     await transaction.commit() 

@@ -36,7 +36,6 @@ async function deleteImageFromCloud(publicId) {
   } catch (error) {
     return {error: true, msg: 'Error al eliminar imagen de la nube'}
   }
-
 }
 
 module.exports ={ uploadImage, deleteImageFromCloud}

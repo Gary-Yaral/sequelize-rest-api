@@ -36,7 +36,6 @@ async function validatePayment(req, res, next) {
     return res.status(404).json({error: true, msg:'URL is not valid'})
   }
   req.body.found = found.dataValues
-  console.log(req.body.found.Reservation)
   next()
 }
 

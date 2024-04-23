@@ -92,19 +92,19 @@
       cursor: pointer;
     }
     
-    #preview {
+    .preview {
+      display: flex;
       width: 100%;
       height: fit-content;
-      transition: height 0.2s ease-in-out;
     }
 
-    #preview img {
+    .preview img {
       width: 100%;
+      height: fit-content;
     }
 
     .hidden {
-      height: 0;
-      transition: height 0.2s ease-in-out;
+      display: none;
     }
 
   </style>
@@ -128,8 +128,8 @@
       <input id="img-file" type="file" class="file">
       <button type="submit">Enviar</button>
     </div>
-    <div id="preview" class="img-container hidden">
-      <img id="img-loaded" alt="preview image">
+    <div id="preview" class="preview hidden">
+      <img src="" id="img-loaded" alt="preview image">
     </div>
   </form>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -191,13 +191,14 @@
     fileInput.onchange = ($event) => {
       const files = $event.target.files
       if($event.target.files.length === 0 && backup.length === 0) {
-        preview.classList.remove('hidden')
+        preview.classList.add('hidden')
         image.src = "" 
         return
       }
       if($event.target.files.length > 0 ) {
         backup = $event.target.files
       } 
+      preview.classList.remove('hidden')
       // Creamos el reader
       const reader = new FileReader()
       reader.onload = ($evt) => {

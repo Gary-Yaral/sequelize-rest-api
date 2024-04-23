@@ -8,12 +8,14 @@ const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const { PAYMENT_STATUS } = require('../constants/db_constants')
 const { getServerData } = require('../utils/server')
-const { uploadImage } = require('../cloudinary/config')
+const { ImageUploaderService } = require('../services/uploadImage.service')
+const { CloudinaryService } = require('../services/cloudinary.service')
+
+const imageUploaderService = new ImageUploaderService(new CloudinaryService('payments'))
 
 async function add(req, res) {
   const transaction = await db.transaction()
   try {
-    //
   } catch (error) {
     console.log(error)
     await transaction.rollback()
@@ -34,23 +36,24 @@ async function update(req, res) {
   }
 }
 
-async function updateStatus(req, res) {
+async function approvePayment(req, res) {
   const transaction = await db.transaction()
   try {
-    console.log(req.body)
-    /* const uploaded = uploadImage(req.body.image) */
-    /* await Payment.update(, {where: {id: req.params.id}}) */
-    if(req.body.paymentStatusId === PAYMENT_STATUS.POR_REVISAR) {
-      // Enviar mensaje de ser recibida 
-    }
-    if(req.body.paymentStatusId === PAYMENT_STATUS.APROBADA) {
-      // Enviar mensaje de que se aprobo
-    }
-    if(req.body.paymentStatusId === PAYMENT_STATUS.RECHAZADA) {
-      // Enviar mensaje de que fue rechazada
-    }
+    // Debo recibir el req.param.id
+    console.log(req.body.found)
+    /* const uploadResult = await imageUploaderService.upload(req.body.image)
+    if(uploadResult) {
+      let { secure_url, public_id } = uploadResult
+      const data = {
+        image: secure_url, 
+        publicId: public_id,
+        paymentStatusId: PAYMENT_STATUS.APROBADA
+      }
+      await Payment.update(data,{ where: {id: req.params.id}}, {transaction}) 
+      imageUploaderService.delete(req.body.found) */
     await transaction.commit()
     return res.json({done: true, msg: 'Se ha actualizado el estado del pago', server: getServerData(req)})
+    /* } */
   } catch (error) {
     console.log(error)
     await transaction.rollback()
@@ -179,7 +182,7 @@ module.exports = {
   getAll,
   findOne,
   paginate,
-  updateStatus, 
+  approvePayment, 
   getPaymentStatuses,
   filterAndPaginate,
   processVoucher

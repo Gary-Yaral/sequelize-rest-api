@@ -1,8 +1,17 @@
-const { uploadImage } = require('../cloudinary/config')
+const { uploadImage, deleteImageFromCloud } = require('../cloudinary/config')
 
 class CloudinaryService {
-  async upload(imgName, folderCloudinary = '') {
-    await uploadImage(imgName, folderCloudinary)
+  folderCloudinary = ''
+  constructor(folderCloudinary) {
+    this.folderCloudinary = folderCloudinary
+  }
+  
+  async upload(imgName) {
+    return await uploadImage(imgName, this.folderCloudinary)
+  }
+
+  async delete(publicId) {
+    return await deleteImageFromCloud(publicId)
   }
 }
 
