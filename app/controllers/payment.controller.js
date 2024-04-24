@@ -1,13 +1,12 @@
 const db = require('../database/config')
-const { Op, col, where } = require('sequelize')
+const { Op, col, where, json } = require('sequelize')
 const Payment = require('../models/payment.model')
 const PaymentStatus = require('../models/paymentStatus.model')
 const Reservation = require('../models/reservation.model')
 const ReservationSchedules = require('../models/reservationSchedule.model')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
-const { PAYMENT_STATUS } = require('../constants/db_constants')
-const { getServerData } = require('../utils/server')
+const { PAYMENT_STATUS, DEFAULT_PAYMENT_IMAGE_PUBLIC_ID } = require('../constants/db_constants')
 const { ImageUploaderService } = require('../services/uploadImage.service')
 const { CloudinaryService } = require('../services/cloudinary.service')
 
@@ -16,6 +15,7 @@ const imageUploaderService = new ImageUploaderService(new CloudinaryService('pay
 async function add(req, res) {
   const transaction = await db.transaction()
   try {
+    //
   } catch (error) {
     console.log(error)
     await transaction.rollback()
@@ -36,28 +36,63 @@ async function update(req, res) {
   }
 }
 
-async function approvePayment(req, res) {
+async function updateVoucher(req, res) {
   const transaction = await db.transaction()
   try {
-    // Debo recibir el req.param.id
-    console.log(req.body.found)
-    /* const uploadResult = await imageUploaderService.upload(req.body.image)
-    if(uploadResult) {
+    const { paymentId } = req.params
+    const payment = await Payment.findOne({where: {id: paymentId}})
+    // Si el pago no existe retornamos error
+    if(!payment) {
+      await transaction.rollback()
+      return res.status(404).json({error: true, msg: 'Pago no fue encontrado'})
+    }
+    if(payment.paymentStatusId !== PAYMENT_STATUS.POR_REVISAR) {
+      await transaction.rollback()
+      return res.status(400).json({error: true, msg: 'Pago ya fue procesado, no es posible actualizar'})
+    }
+    // Subimos la nueva imagen del voucher
+    const uploadResult = await imageUploaderService.upload(req.body.image)
+    // Solo si no hubo error al subir la imagen actualizamos el voucher
+    if(!uploadResult.error) {
       let { secure_url, public_id } = uploadResult
-      const data = {
-        image: secure_url, 
-        publicId: public_id,
-        paymentStatusId: PAYMENT_STATUS.APROBADA
+      const data = { image: secure_url, publicId: public_id }
+      // Actualizamos la imagen del voucher
+      await Payment.update(data,{ where: {id: paymentId}}, {transaction}) 
+      // Verificamos si no tenia imagen una imagen por defecto cargada previamente 
+      if(payment.publicId !== DEFAULT_PAYMENT_IMAGE_PUBLIC_ID) {
+        const deleteResult = await imageUploaderService.delete(payment.publicId)
+        // Si no se pudo eliminar la imagen previa entonces deshacemos los cambios y devolvemos error
+        if(deleteResult.error) {
+          await transaction.rollback()
+          return res.status(400).json({error: true, msg: 'Error al eliminar la imagen previa del voucher'})
+        }
       }
-      await Payment.update(data,{ where: {id: req.params.id}}, {transaction}) 
-      imageUploaderService.delete(req.body.found) */
-    await transaction.commit()
-    return res.json({done: true, msg: 'Se ha actualizado el estado del pago', server: getServerData(req)})
-    /* } */
+      await transaction.commit()
+      return res.json({done: true, msg: 'Se ha actualizado el estado del pago'})
+    }
+    // Si hubo error al subir la imagen del voucher retornamos error
+    await transaction.rollback()
+    return res.status(400).json({error: true, msg: 'No se pudo actualizar el voucher del pago'})
   } catch (error) {
     console.log(error)
     await transaction.rollback()
     return res.json({error: true, msg: 'Error al actualizar el estado del pago'})
+  }
+}
+
+async function updateStatus(req, res) {
+  const transaction = await db.transaction()
+  try {
+    const { paymentId } = req.params
+    const { paymentStatusId } = req.body
+    await Payment.update({paymentStatusId},{where: {id: paymentId}})
+    await transaction.commit()
+    const io = req.app.get('io')
+    io.emit('payment-status-updated', 'Pago ya fue aprobado')
+    return res.json({done: true, msg: 'El estado del pago ha sido actualizado'})
+  } catch (error) {
+    console.log(error)
+    return res,json({error: true, msg : ''})
   }
 }
 
@@ -182,7 +217,8 @@ module.exports = {
   getAll,
   findOne,
   paginate,
-  approvePayment, 
+  updateVoucher, 
+  updateStatus,
   getPaymentStatuses,
   filterAndPaginate,
   processVoucher

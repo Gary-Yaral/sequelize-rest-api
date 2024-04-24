@@ -30,10 +30,10 @@ async function validatePayment(req, res, next) {
     where: {reservationId}
   })
   if(!found) {
-    return res.status(404).json({error: true, msg:'Payment no found'})
+    return res.status(404).render('paymentNotFound')
   }
   if(found.paymentStatusId !== PAYMENT_STATUS.POR_REVISAR ) {
-    return res.status(404).json({error: true, msg:'URL is not valid'})
+    return res.render('paymentNotAvailable')
   }
   req.body.found = found.dataValues
   next()
