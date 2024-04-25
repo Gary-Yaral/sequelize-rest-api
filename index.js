@@ -11,7 +11,10 @@ const io = socketIo(server)
 const cors = require('cors')
 const PORT = process.env.PORT || 4000 
 
-app.use(cors({ origin: '*' }))
+app.use(cors({
+  origin: 'http://localhost:4200', 
+  optionsSuccessStatus: 200
+}))
 app.set('view engine', 'ejs')
 app.set('io', io)
 app.set('views', path.join(__dirname, 'app', 'views'))

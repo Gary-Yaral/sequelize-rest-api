@@ -144,7 +144,6 @@
       // Como estamos dentro del mismo servidor no se le pasa host ni puerto
       const socket = io();
       socket.on('payment-status-updated', (data) => {
-        console.log(data)
         window.location.reload()
       });
     });
