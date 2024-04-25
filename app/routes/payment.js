@@ -1,14 +1,14 @@
 
-const { PROCESS_VOUCHER_ROUTE } = require('../constants/db_constants')
 const paymentController = require('../controllers/payment.controller')
-const { validateToken } = require('../middlewares/auth')
 const router = require('express').Router()
 const multer = require('multer')
 const path = require('path')
-/* const { findId } = require('../middlewares/findId') */
+const { PROCESS_VOUCHER_ROUTE } = require('../constants/db_constants')
+const { validateToken } = require('../middlewares/auth')
+const { findId } = require('../middlewares/findId')
 const { validatePayment } = require('../middlewares/validatePaymentId')
 const { newImageName } = require('../utils/saveImage')
-/* const Payment = require('../models/payment.model') */
+const Payment = require('../models/payment.model')
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, './app/images/')
@@ -25,20 +25,13 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage })
-
-/* router.get('/:id', validateToken, reservationController.findOne) */
 router.get('/list', validateToken, paymentController.getAll)
 router.get(`${PROCESS_VOUCHER_ROUTE}:reservationId`, validatePayment, paymentController.processVoucher)
 router.get('/', validateToken, paymentController.paginate)
 router.get('/statuses', validateToken, paymentController.getPaymentStatuses)
 router.post('/filter', validateToken, paymentController.filterAndPaginate)
 router.put('/voucher/:paymentId', upload.single('voucher'), paymentController.updateVoucher)
-router.put('/status/:paymentId', validateToken, paymentController.updateStatus)
-/*router.get('/statuses', validateToken, reservationController.getStatusTypes)
-router.get('/types', validateToken, reservationController.getScheduleTypes)
-router.post('/package', validateToken, reservationController.getReservationPackageData)
-router.post('/', validateToken, reservationController.add)
-router.put('/:id', validateToken, findId(Reservation), reservationController.update)
-router.delete('/:id', validateToken, findId(Reservation), reservationController.remove) */
+router.put('/status/:paymentId', validateToken, findId(Payment, {prop: 'paymentId'}), paymentController.updateStatus)
+router.delete('/:id', validateToken, findId(Payment), paymentController.remove)
 
 module.exports = { router}

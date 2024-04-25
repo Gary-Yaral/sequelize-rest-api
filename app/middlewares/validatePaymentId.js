@@ -32,7 +32,7 @@ async function validatePayment(req, res, next) {
   if(!found) {
     return res.status(404).render('paymentNotFound')
   }
-  if(found.paymentStatusId !== PAYMENT_STATUS.POR_REVISAR ) {
+  if(found.paymentStatusId !== PAYMENT_STATUS.WAITING ) {
     return res.render('paymentNotAvailable')
   }
   req.body.found = found.dataValues

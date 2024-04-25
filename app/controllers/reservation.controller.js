@@ -17,14 +17,14 @@ const User = require('../models/userModel')
 const { htmlSuccess } = require('../email/types/success')
 const { htmlDenied } = require('../email/types/denied')
 const Payment = require('../models/payment.model')
-const { getEndPointRoute } = require('../utils/server')
+const { getEndPointRoute, emitStateChange } = require('../utils/server')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
   try {
     /* CREAMOS LOS DATOS DE LA RESERVACION */
     let reservation = {
-      statusId: RESERVATION_STATUS.EN_ESPERA,
+      statusId: RESERVATION_STATUS.WAITING,
       userRoleId: req.user.data.UserRole.id,
       roomId: req.body.roomId,
       date: req.body.date,
@@ -72,7 +72,7 @@ async function add(req, res) {
         return res.json(packageDetailResult)}
     }
     // Enviamos el email
-    let msgResult = await sendNewEmail(req, RESERVATION_STATUS.EN_ESPERA)
+    let msgResult = await sendNewEmail(req, RESERVATION_STATUS.WAITING)
     if(msgResult.error) {
       await transaction.rollback()
       return res.json(msgResult)
@@ -96,8 +96,8 @@ async function sendNewEmail(req, type) {
     if(emailUser.error) { return emailUser }
     return await sendMail({
       email: emailUser,
-      subject: 'Proceso de Reservación',
-      text: msgData.text,
+      subject: msgData.subject,
+      text: msgData.msg,
       type: 'html'
     })
 
@@ -109,29 +109,36 @@ async function sendNewEmail(req, type) {
 
 async function createMsgData(req, type, roomId, initialTime, finalTime, date) {
   try {
-    let text = ''
+    const data = { msg: '', subject: ''}
     const local = await Room.findOne({where: {id: roomId}})
     let str = `
       <p><b>Local: </b>${local.dataValues.name}</p>
       <p><b>Horario: </b>${initialTime} a ${finalTime}</p>
       <p><b>Fecha: </b>${date}</p>
     `
-    if(type === RESERVATION_STATUS.EN_ESPERA) {
-      return {text: htmlInitial(str)}
+    if(type === RESERVATION_STATUS.WAITING) {
+      data.msg = htmlInitial(str)
+      data.subject = '¡Reservación Recibida!'
+      return data
     }
   
-    if(type === RESERVATION_STATUS.APROBADA) {
+    if(type === RESERVATION_STATUS.APPROVED) {
       const accounts = [
         {bank: 'Banco Pichincha', account: '22032566433', type: 'Corriente'}
       ]
       const endpoint = getEndPointRoute(req, PROCESS_VOUCHER_ROUTE_FULL + req.params.id)
-      return {text: htmlSuccess(str, accounts, endpoint)}
-    }
-    if(type === RESERVATION_STATUS.RECHAZADA) {
-      return {text: htmlDenied(str)}
+      data.msg = htmlSuccess(str, accounts, endpoint)
+      data.subject = '¡Reservación Aprobada!'
+      return data
     }
 
-    return { text }
+    if(type === RESERVATION_STATUS.DENIED) {
+      data.msg = htmlDenied(str)
+      data.subject = 'Reservación Rechazada'
+      return data
+    }
+
+    return data
   } catch (error) {
     console.log(error)
     return { error: true, msg: 'Error al crear el mensaje del email'}  
@@ -140,14 +147,14 @@ async function createMsgData(req, type, roomId, initialTime, finalTime, date) {
 
 async function getUserEmail(req, type) {
   try {
-    if(type === RESERVATION_STATUS.EN_ESPERA) {
+    if(type === RESERVATION_STATUS.WAITING) {
       let userId = req.user.data.User.id
       let found =  await User.findOne({where: {id: userId}})
       if (!found) { return {error: true, msg: 'Error al consultar email del usuario logueado'}}
       return found.dataValues.email
     }
 
-    if(req.params.id && type !== RESERVATION_STATUS.EN_ESPERA) {
+    if(req.params.id && type !== RESERVATION_STATUS.WAITING) {
       const reservation = await Reservation.findOne({
         where: { id: req.params.id },
         include: [{model: UserRoles, include: [User]}]
@@ -402,7 +409,7 @@ async function remove(req, res) {
   try {
     const { id, statusId } = req.body.found
     // Si está aprobada no permitiremos que elimine
-    if (statusId === RESERVATION_STATUS.APROBADA) {
+    if (statusId === RESERVATION_STATUS.WAITING) {
       return res.json({
         done: true,
         msg: 'No es posible eliminar esta reservacion porque está aprobada y tiene un pago pendiente'
@@ -489,6 +496,7 @@ async function updateReservationStatus(req, res) {
       return res.json(sendEmailResult)
     }
     await transaction.commit()
+    await emitStateChange(req, 'Se ha creado un pago')
     return res.json({done: true, msg: 'Se ha actualizado el estado de la reservación. Se ha enviado un correo a <b>' + sendEmailResult.email + '</b>'})
   } catch (error) {
     await transaction.rollback()
@@ -502,7 +510,7 @@ async function hasApprovedPayment(reservationId) {
     const foundPayment = await Payment.findOne({
       where: {
         reservationId, 
-        paymentStatusId: PAYMENT_STATUS.APROBADA
+        paymentStatusId: PAYMENT_STATUS.APPROVED
       }})
     if(foundPayment) {
       return {error: true, msg: 'Esta reservación ya tiene un pago revisado y aprobado'}
@@ -517,20 +525,12 @@ async function hasApprovedPayment(reservationId) {
 
 async function processPayment(req, transaction) {
   try {
-    const foundPayment = await Payment.findOne({where: {reservationId: req.params.id, }})
-    // Estaba en espera y la aprobaron
-    if(req.body.statusId === RESERVATION_STATUS.EN_ESPERA || req.body.statusId === RESERVATION_STATUS.RECHAZADA) {
-      if(foundPayment) {
-        await deletePayment(req.params.id)
-        // Eliminar la imagen del pago tambien
-      }
-      return {done: true}
-    }
+    await Payment.destroy({where: {reservationId: req.params.id}})
     let date = new Date()
     await Payment.create({
       date: date.toISOString().split('T')[0], 
       reservationId: req.params.id, 
-      paymentStatusId: PAYMENT_STATUS.POR_REVISAR,
+      paymentStatusId: PAYMENT_STATUS.WAITING,
       total: req.body.payPerLocal + req.body.payPerPackage,
       image: DEFAULT_PAYMENT_IMAGE,
       publicId: DEFAULT_PAYMENT_IMAGE_PUBLIC_ID
@@ -539,15 +539,6 @@ async function processPayment(req, transaction) {
   } catch (error) {
     console.log(error)
     return {error: true, msg: 'Error al validar proceso de actualización de pago'}
-  }
-}
-
-async function deletePayment(reservationId) {
-  try {
-    return await Payment.destroy({where: {reservationId}})
-  } catch (error) {
-    console.log(error)
-    return {error: true, msg: 'Error al eliminar el pago registrado'}
   }
 }
 

@@ -1,8 +1,13 @@
 const { uploadImage, deleteImageFromCloud } = require('../cloudinary/config')
+const { Uploader } = require('./toImplement/uploader')
 
-class CloudinaryService {
+class CloudinaryService extends Uploader {
   folderCloudinary = ''
-  constructor(folderCloudinary) {
+  constructor() {
+    super()
+  }
+
+  setFolder(folderCloudinary) {
     this.folderCloudinary = folderCloudinary
   }
   

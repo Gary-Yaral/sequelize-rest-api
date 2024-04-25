@@ -45,5 +45,15 @@
 <body>
   <div class="circle">404</div>
   <h1>!Page not found!</h1>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Como estamos dentro del mismo servidor no se le pasa host ni puerto
+      const socket = io();
+      socket.on('payment-status-updated', (data) => {
+        window.location.reload()
+      });
+    });
+  </script>
 </body>
 </html>

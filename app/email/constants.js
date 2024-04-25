@@ -1,3 +1,3 @@
-const logo = 'https://blueandgreentomorrow.com/wp-content/uploads/2018/07/reasons-shop-local.jpg'
+const logo = 'https://res.cloudinary.com/dcougeze6/image/upload/v1713977565/favicon/log_nfdrud.png'
 
 module.exports = { logo }

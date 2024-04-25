@@ -14,13 +14,6 @@ const accountTransport = {
   }
 }
 
-// Configura el correo electrónico que deseas enviar
-/* const mailOptions = {
-  email: 'user.test@gmail.com',
-  subject: 'Importante',
-  text: 'Message',
-} */
-
 const sendMail = (emailData) => {
   return new Promise((resolve, reject) => {
     const oauth2Client = new OAuth2(

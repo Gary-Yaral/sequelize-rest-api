@@ -6,35 +6,16 @@ const Reservation = require('../models/reservation.model')
 const ReservationSchedules = require('../models/reservationSchedule.model')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
-const { PAYMENT_STATUS, DEFAULT_PAYMENT_IMAGE_PUBLIC_ID } = require('../constants/db_constants')
+const { PAYMENT_STATUS, DEFAULT_PAYMENT_IMAGE_PUBLIC_ID, RESERVATION_STATUS, PROCESS_VOUCHER_ROUTE_FULL } = require('../constants/db_constants')
 const { ImageUploaderService } = require('../services/uploadImage.service')
-const { CloudinaryService } = require('../services/cloudinary.service')
+const { EmailService } = require('../services/email.service')
+const { paymentApprovedMsg } = require('../email/types/paymentApproved')
+const { paymentDeniedMsg } = require('../email/types/paymentDenied')
+const { paymentReceivedMsg } = require('../email/types/paymentRecieved')
+const { getEndPointRoute, emitStateChange } = require('../utils/server')
 
-const imageUploaderService = new ImageUploaderService(new CloudinaryService('payments'))
-
-async function add(req, res) {
-  const transaction = await db.transaction()
-  try {
-    //
-  } catch (error) {
-    console.log(error)
-    await transaction.rollback()
-    return res.json({ error: true, msg: 'Error al guardar datos de la reservación' })
-  }
-}
-
-async function update(req, res) {
-  const transaction = await db.transaction()
-  try { 
-    //salió guardamos los cambios
-    //await transaction.commit()
-    return res.json({done: true, msg: 'Reservación se ha actualizado correctamente'})   
-  } catch (error) {
-    console.log(error)
-    await transaction.rollback()
-    return res.json({ error: true, msg: 'Error al actualizar datos del local' })
-  }
-}
+const imageUploaderService = ImageUploaderService.service
+imageUploaderService.setFolder('payments')
 
 async function updateVoucher(req, res) {
   const transaction = await db.transaction()
@@ -46,7 +27,8 @@ async function updateVoucher(req, res) {
       await transaction.rollback()
       return res.status(404).json({error: true, msg: 'Pago no fue encontrado'})
     }
-    if(payment.paymentStatusId !== PAYMENT_STATUS.POR_REVISAR) {
+    // Si el pago ya fue procesado retornamos
+    if(payment.paymentStatusId !== PAYMENT_STATUS.WAITING) {
       await transaction.rollback()
       return res.status(400).json({error: true, msg: 'Pago ya fue procesado, no es posible actualizar'})
     }
@@ -67,6 +49,7 @@ async function updateVoucher(req, res) {
           return res.status(400).json({error: true, msg: 'Error al eliminar la imagen previa del voucher'})
         }
       }
+      // Guardamos los cambios
       await transaction.commit()
       return res.json({done: true, msg: 'Se ha actualizado el estado del pago'})
     }
@@ -80,32 +63,107 @@ async function updateVoucher(req, res) {
   }
 }
 
+async function remove(req, res) {
+  const transaction = await db.transaction()
+  try {
+    const { id } = req.params
+    const { reservationId, publicId, paymentStatusId } = req.body.found.dataValues
+    // No permitira eliminar si ya fue aprobada
+    if(paymentStatusId === PAYMENT_STATUS.APPROVED) {
+      return res.json({error: true, msg: 'No es posible eliminar el pago, ya ha sido aprobado'})
+    }
+    // Eliminamos el pago y actualizamos la reservación
+    await Payment.destroy({where:{id}, transaction})
+    await Reservation.update({statusId: RESERVATION_STATUS.WAITING}, {where: {id: reservationId}})
+    // Guardamos los cambios y emitimos el evento
+    await transaction.commit()
+    await emitStateChange(req, 'Pago fue eliminado')
+    // Eliminamos la imagen del voucher en caso de tener
+    if(publicId !== DEFAULT_PAYMENT_IMAGE_PUBLIC_ID) {
+      const deleteResult = await imageUploaderService.delete(publicId)
+      if(deleteResult.error) {
+        return res.json(deleteResult)
+      }
+    }
+    return res.json({done: true, msg: 'Pago ha sido eliminado correctamente, reservación cambió a EN ESPERA'})
+  } catch (error) {
+    console.log(error)
+    await transaction.rollback()
+    return res.json({error: true, msg: 'Error al eliminar el pago'})
+  }
+}
+
 async function updateStatus(req, res) {
   const transaction = await db.transaction()
   try {
     const { paymentId } = req.params
     const { paymentStatusId } = req.body
+    const { reservationId } = req.body.found
+    // Actualizamos el estado del pago
     await Payment.update({paymentStatusId},{where: {id: paymentId}})
+    // Creamos el link de actualización de voucher
+    const link = getEndPointRoute(req, PROCESS_VOUCHER_ROUTE_FULL + reservationId)
+    // Enviamos el email correspondiente
+    const sendEmailResult = await sendEmail(reservationId, paymentStatusId, link)
+    // Si ocurre un error al enviar el mensaje retornamos un error
+    if(sendEmailResult.error) {
+      await transaction.rollback()
+      return res.json(sendEmailResult)
+    }
+    // Si todo va bien guardamos los cambios y emitimos el evento
     await transaction.commit()
-    const io = req.app.get('io')
-    io.emit('payment-status-updated', 'Pago ya fue aprobado')
+    await emitStateChange(req, 'Pago cambió de estado')
     return res.json({done: true, msg: 'El estado del pago ha sido actualizado'})
   } catch (error) {
     console.log(error)
+    await transaction.commit()
     return res,json({error: true, msg : ''})
   }
 }
 
-async function remove(req, res) {
-  const transaction = await db.transaction()
+async function sendEmail(reservationId, paymentStatusId, link) {
   try {
-    // Si todo ha ido bien guardamos los cambios
-    await transaction.commit()
-    return res.json({ done: true, msg: 'Reservación ha sido eliminada correctamente' })
+    const reservation = await Reservation.findOne({
+      include: [{
+        model: UserRoles,
+        include: [User]
+      }],
+      where: {id: reservationId}
+    })
+    const userEmail = reservation.UserRole.User.email
+    const msgData = createdEmailMsg(paymentStatusId, link)
+    const emailData = {
+      email: userEmail,
+      subject: msgData.subject,
+      text: msgData.msg,
+      type: 'html'
+    }
+    return await EmailService.email.send(emailData)
   } catch (error) {
     console.log(error)
-    await transaction.rollback()
-    return res.json({ error: true, msg: 'Error al intentar eliminar la reservación' })
+    return {error: true, msg: 'Error al enviar mensaje de actualización de estado del pago'}
+  }
+}
+
+function createdEmailMsg(paymentStatusId, link) {
+  console.log('status: ', paymentStatusId)
+  if(paymentStatusId === PAYMENT_STATUS.APPROVED) {
+    return { 
+      subject: '¡Pago Aprobado!',
+      msg: paymentApprovedMsg()
+    }
+  }
+  if(paymentStatusId === PAYMENT_STATUS.DENIED) {
+    return { 
+      subject: '¡Pago Rechazado!',
+      msg: paymentDeniedMsg()
+    }
+  }
+  if(paymentStatusId === PAYMENT_STATUS.WAITING) {
+    return { 
+      subject: 'Pago En Espera',
+      msg: paymentReceivedMsg(link)
+    }
   }
 }
 
@@ -183,8 +241,8 @@ async function filterAndPaginate(req, res) {
 
 async function getAll(req, res) {
   try {
-    const rooms = await Payment.findAll()
-    return res.json({ data: rooms })
+    const payments = await Payment.findAll()
+    return res.json({ data: payments })
   } catch (error) {
     return res.json({ error: true, msg: 'Error al listar todos los pagos' })
   }
@@ -192,7 +250,7 @@ async function getAll(req, res) {
 
 async function findOne(req, res) {
   try {
-    let id = req.params.id
+    let { id } = req.params
     const payment = await Payment.findOne({where: {id}})
     return res.json({data: payment})
   } catch (error) {
@@ -211,9 +269,6 @@ async function processVoucher(req, res) {
 }
 
 module.exports = {
-  add,
-  update,
-  remove,
   getAll,
   findOne,
   paginate,
@@ -221,5 +276,6 @@ module.exports = {
   updateStatus,
   getPaymentStatuses,
   filterAndPaginate,
-  processVoucher
+  processVoucher,
+  remove
 }
