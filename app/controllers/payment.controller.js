@@ -12,7 +12,7 @@ const { EmailService } = require('../services/email.service')
 const { paymentApprovedMsg } = require('../email/types/paymentApproved')
 const { paymentDeniedMsg } = require('../email/types/paymentDenied')
 const { paymentReceivedMsg } = require('../email/types/paymentRecieved')
-const { getEndPointRoute, emitStateChange } = require('../utils/server')
+const { getEndPointRoute, emitStateChange, emitVoucherChange } = require('../utils/server')
 
 const imageUploaderService = ImageUploaderService.service
 imageUploaderService.setFolder('payments')
@@ -51,6 +51,7 @@ async function updateVoucher(req, res) {
       }
       // Guardamos los cambios
       await transaction.commit()
+      await emitVoucherChange(req, 'Voucher fué actualizado')
       return res.json({done: true, msg: 'Se ha actualizado el estado del pago'})
     }
     // Si hubo error al subir la imagen del voucher retornamos error

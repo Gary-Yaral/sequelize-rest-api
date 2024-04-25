@@ -7,21 +7,19 @@ const app = express()
 const socketIo = require('socket.io')
 const http = require('http')
 const server = http.createServer(app)
-const io = socketIo(server)
+const io = socketIo(server, {cors: {origin: '*'}})
 const cors = require('cors')
 const PORT = process.env.PORT || 4000 
 
-app.use(cors({
-  origin: 'http://localhost:4200', 
-  optionsSuccessStatus: 200
-}))
+app.use(cors())
+app.use(express.json())
+// Configuramos nuestro motor de plantillas
 app.set('view engine', 'ejs')
 app.set('io', io)
 app.set('views', path.join(__dirname, 'app', 'views'))
-app.use(express.json())
+// Middleware para servir archivos estáticos desde la carpeta 'imagenes'
 app.use('/api/images', express.static(path.join(__dirname, 'app' ,'images')))
 app.use('/api', routes.router)
-// Middleware para servir archivos estáticos desde la carpeta 'imagenes'
 
 sequelize.sync()
   .then(() => {

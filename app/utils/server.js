@@ -14,4 +14,10 @@ async function emitStateChange(req, msg) {
   io.emit(EVENT_STATE_CHANGE, msg)
 } 
 
-module.exports = { getServerData, getEndPointRoute, emitStateChange }
+const VOUCHER_WAS_CHANGED = 'voucher-was-changed'
+async function emitVoucherChange(req, msg) {
+  const io = req.app.get('io')
+  io.emit(VOUCHER_WAS_CHANGED, msg)
+} 
+
+module.exports = { getServerData, getEndPointRoute, emitStateChange, emitVoucherChange}
