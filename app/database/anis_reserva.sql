@@ -128,7 +128,7 @@ CREATE TABLE `payment` (
 
 /*Data for the table `payment` */
 
-insert  into `payment`(`id`,`date`,`total`,`paymentStatusId`,`reservationId`,`image`,`publicId`) values ('0440cda6-5e0f-4fae-859f-4dfe10edc8c6','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('31f9930f-f6d3-41fe-898d-0d2f07b63cb1','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('51af957a-150f-4d7c-b357-ebaa1a222d76','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('709e7895-3d14-4299-89dc-3b4c455dba85','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('af77d01a-1356-4031-8b0e-9452ae284de5','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'),('b9b3179b-ebc8-4896-8aef-777bbcd7bd5d','2024-04-23',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1713791767/defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg','defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg');
+insert  into `payment`(`id`,`date`,`total`,`paymentStatusId`,`reservationId`,`image`,`publicId`) values ('2c46fd83-9fbc-4cc0-a91d-0c16588a465f','2024-04-25',392,1,'93a0cab7-eb58-4e25-ad86-d1da5dec62e3','https://res.cloudinary.com/dcougeze6/image/upload/v1714144452/payments/hwd3q1utg5s43h2tvsaj.jpg','payments/hwd3q1utg5s43h2tvsaj');
 
 /*Table structure for table `payment_status` */
 
@@ -331,7 +331,7 @@ CREATE TABLE `subcategory` (
 
 /*Data for the table `subcategory` */
 
-insert  into `subcategory`(`id`,`name`,`categoryId`) values (3,'UNO',2),(7,'DOS',2),(8,'CERVEZA',3);
+insert  into `subcategory`(`id`,`name`,`categoryId`) values (3,'MESA PLASTICA',2),(7,'MESA METALICA',2),(8,'CERVEZA',3);
 
 /*Table structure for table `user` */
 
@@ -353,7 +353,7 @@ CREATE TABLE `user` (
 
 /*Data for the table `user` */
 
-insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','GAVILANEZ MORA','0934464637','anisappreservation@gmail.com','F_Nerd2023','$2b$10$28EWTo4H40OhnGJq8nfefOR4DZ0L6yxjbTHtv2K6O6Ju.lBsXJEGe'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','andresviteri2024@gmail.com','Andres_2024','$2b$10$FYds4LtmJaU2ohd4xSLKIOhXfcFaIS7NGvktqKMFGLdMpPoYqxrdK'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','miguelangel@gmail.com','Miusuario_2026','$2b$10$zGpaNABv19HpMnxteiZ4Z./wKNSkLQW/0RX89nJUUtLElWW/xBIQy');
+insert  into `user`(`id`,`dni`,`name`,`lastname`,`telephone`,`email`,`username`,`password`) values (39,'1354646737','JULIO ANDRES','GAVILANEZ MORA','0934464637','anisappreservation@gmail.com','F_Nerd2023','$2b$10$7S6LP.ijRmzDi8kwsLHtSO8A/IQp9rvuiiRi6YwlRFS/bpWCgaQSG'),(50,'1323356806','ANDRES FELIPE','MERA VITERI','0945454354','anisappreservation@gmail.com','Andres_2024','$2b$10$oL1lCN0S3aUbnaiJNaGSW.tgSw7GtIsQmG7Yl07BBUlsuKxxzAZ56'),(58,'1356575751','MIGUEL ANGEL','CORDERO MIRANDA','0943546342','anisappreservation@gmail.com','Miusuario_2024','$2b$10$vpNJtPXXmUxZgi7ZkZUyAO/DB3f9NNc8nFkPc5VBdB5IGzQhAyWxG');
 
 /*Table structure for table `user_roles` */
 
