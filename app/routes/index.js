@@ -20,6 +20,7 @@ const routes = {
   'reservation': 'reservations',
   'category': 'categories',
   'password': 'password-reset',
+  'home': 'home',
   'payment': 'payments'
 }
 
