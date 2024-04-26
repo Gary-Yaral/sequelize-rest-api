@@ -2,6 +2,10 @@ const sequelize = require('../database/config')
 const User = require('../models/userModel')
 const UserRoles = require('../models/userRoleModel')
 const { generateHash } = require('../utils/bcrypt')
+const { EmailService } = require('../services/email.service')
+const { resetPasswordEmail } = require('../email/types/resetPassword')
+const { PROCESS_RESET_PASSWORD } = require('../constants/db_constants')
+const { getEndPointRoute } = require('../utils/server')
 
 async function add(req, res) {
   const transaction = await sequelize.transaction()
@@ -29,7 +33,7 @@ async function add(req, res) {
 async function update(req, res) {
   const transaction = await sequelize.transaction()
   try {
-    let { userData, userRoleData} = req.body
+    let { userData, userRoleData } = req.body
     if(req.body.password) {
       userData.password =  await generateHash(req.body.password)
     }
@@ -44,26 +48,6 @@ async function update(req, res) {
   } catch (error) {
     await transaction.rollback()
     res.json(error)
-  }
-}
-
-async function resetPassword(req, res) {
-  const transaction = await sequelize.transaction()
-  try {
-    // Creamos el hash
-    const password =  await generateHash(req.body.password)
-    // Actualizamos la contraseña
-    await User.update({password}, {where: {dni: req.body.dni}}, {transaction})
-    // Si todo ha ido bien guardamos los cambios
-    await transaction.commit()
-    return res.json({
-      result: true,
-      message: 'Usuario actualizado correctamente'
-    })
-    
-  } catch (error) {
-    await transaction.rollback()
-    res.status(500).json({error})
   }
 }
 
@@ -103,9 +87,57 @@ async function remove(req, res) {
   }
 }
 
+async function sendEmailToReset(req, res) {
+  try { 
+    let { dni, email } = req.body.found
+    // Creamos el link de actualización de voucher
+    const link = getEndPointRoute(req, PROCESS_RESET_PASSWORD + dni)
+    const emailData = {
+      email: email,
+      subject: 'Restaurar contraseña',
+      text: resetPasswordEmail(link),
+      type: 'html'
+    }
+    await EmailService.email.send(emailData)
+    return res.json({
+      done: true,
+      msg: 'Contraseña ha sido actualizada correctamente'
+    })
+  } catch (error) {
+    console.log(error)
+    return res.json({error: true, msg: 'Error al enviar link de actualización'})
+  }
+}
+
+async function resetPassword(req, res) {
+  const transaction = await sequelize.transaction()
+  try {
+    const password =  await generateHash(req.body.password)
+    // Actualizamos la contraseña
+    await User.update({password}, {where: {id: req.params.id}}, {transaction})
+    // Si todo ha ido bien guardamos los cambios
+    await transaction.commit()
+    return res.json({
+      done: true,
+      msg: 'Contraseña ha sido actualizada correctamente'
+    })
+    
+  } catch (error) {
+    console.log(error)
+    await transaction.rollback()
+    return res.json({error: true, msg: 'Error al actualizar contraseña'})
+  }
+}
+
+async function resetPasswordView(req, res) {
+  res.render('resetPassword', req.body.found)
+}
+
 module.exports = {
   add,
   update,
   remove,
-  resetPassword
+  resetPassword,
+  sendEmailToReset,
+  resetPasswordView
 }

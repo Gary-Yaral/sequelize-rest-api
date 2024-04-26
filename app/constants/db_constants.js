@@ -39,6 +39,7 @@ const DEFAULT_PAYMENT_IMAGE = 'https://res.cloudinary.com/dcougeze6/image/upload
 const DEFAULT_PAYMENT_IMAGE_PUBLIC_ID = 'defaults/815f364da297076f597bec74fc7853d0_t_k2h3uv.jpg'
 const PROCESS_VOUCHER_ROUTE = '/process-voucher/'
 const PROCESS_VOUCHER_ROUTE_FULL = '/api/payments'+PROCESS_VOUCHER_ROUTE
+const PROCESS_RESET_PASSWORD = '/api/users/reset-password/'
 const ERROR_PARENT_CODE = 1451
 
 module.exports = {
@@ -53,5 +54,6 @@ module.exports = {
   DEFAULT_PAYMENT_IMAGE,
   PROCESS_VOUCHER_ROUTE,
   PROCESS_VOUCHER_ROUTE_FULL,
+  PROCESS_RESET_PASSWORD,
   DEFAULT_PAYMENT_IMAGE_PUBLIC_ID
 }

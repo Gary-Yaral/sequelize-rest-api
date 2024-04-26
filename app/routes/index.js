@@ -19,6 +19,7 @@ const routes = {
   'subcategory': 'subcategories',
   'reservation': 'reservations',
   'category': 'categories',
+  'password': 'password-reset',
   'payment': 'payments'
 }
 
